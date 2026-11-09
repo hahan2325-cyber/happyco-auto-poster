@@ -1,7 +1,7 @@
 """
 Bộ máy tạo ảnh AI độc bản 16:9 chuyên nghiệp cho Happyco
-Đảm bảo 100% không trùng lặp hash (MD5 + dHash), tự động gắn Watermark Duo Happyco
-Tích hợp cơ chế Rate-Limit Backoff (46s) & Fallback Architectural Photography đảm bảo không bao giờ lỗi trên Cloud
+Đảm bảo 100% không trùng lặp hash (MD5 + dHash)
+Tự động đóng dấu Happyco Duo Watermark trên nền kính mờ (Frosted White Pill) siêu sắc nét
 """
 
 import os
@@ -11,7 +11,7 @@ import random
 import hashlib
 import requests
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -32,21 +32,11 @@ def apply_watermark(image_path: Path) -> None:
 
     try:
         im = Image.open(image_path).convert("RGBA")
-        wm = Image.open(WATERMARK_PATH).convert("RGBA")
 
-        # Resize watermark proportionally to ~22% of image width
-        wm_w = int(im.width * 0.22)
-        wm_h = int(wm.height * (wm_w / wm.width))
-        wm_resized = wm.resize((wm_w, wm_h), Image.Resampling.LANCZOS)
-
-        # Position at top-left with padding (35px)
-        padding = 35
-        im.paste(wm_resized, (padding, padding), wm_resized)
-
-        # Ensure 16:9 crop if not exact
+        # 1. BẮT BUỘC CẮT 16:9 TRƯỚC TIÊN (1280x720 hoặc tỷ lệ 16:9 chuẩn)
         target_ratio = 16.0 / 9.0
         cur_ratio = im.width / im.height
-        if abs(cur_ratio - target_ratio) > 0.05:
+        if abs(cur_ratio - target_ratio) > 0.03:
             if cur_ratio > target_ratio:
                 new_w = int(im.height * target_ratio)
                 left = (im.width - new_w) // 2
@@ -56,16 +46,44 @@ def apply_watermark(image_path: Path) -> None:
                 top = (im.height - new_h) // 2
                 im = im.crop((0, top, im.width, top + new_h))
 
-        # Save back to RGB JPEG
+        # Đảm bảo độ phân giải tối thiểu 1280x720
+        if im.width < 1280:
+            im = im.resize((1280, 720), Image.Resampling.LANCZOS)
+
+        # 2. CHUẨN BỊ WATERMARK DUO TRÊN NỀN KÍNH MỜ (FROSTED PILL)
+        wm = Image.open(WATERMARK_PATH).convert("RGBA")
+
+        # Tính toán kích thước watermark: ~24% chiều rộng ảnh
+        wm_w = int(im.width * 0.24)
+        wm_h = int(wm.height * (wm_w / wm.width))
+        wm_resized = wm.resize((wm_w, wm_h), Image.Resampling.LANCZOS)
+
+        # Tạo container kính mờ trắng (Pill) bo tròn góc 12px để logo luôn tương phản 100% trên mọi loại nền
+        pad_x = 16
+        pad_y = 10
+        pill_w = wm_w + pad_x * 2
+        pill_h = wm_h + pad_y * 2
+
+        pill = Image.new("RGBA", (pill_w, pill_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(pill)
+        # Nền trắng mờ 90% opacity (alpha 230)
+        draw.rounded_rectangle([(0, 0), (pill_w, pill_h)], radius=12, fill=(255, 255, 255, 230))
+        pill.paste(wm_resized, (pad_x, pad_y), wm_resized)
+
+        # 3. GẮN LOGO VÀO GÓC TRÊN BÊN TRÁI (35px padding)
+        im.paste(pill, (35, 35), pill)
+
+        # Lưu lại JPEG chất lượng cao 92%
         rgb_im = im.convert("RGB")
         rgb_im.save(image_path, "JPEG", quality=92, optimize=True)
+        print(f"  [ImageEngine] Đã gắn Watermark Duo sắc nét vào: {image_path.name}", flush=True)
     except Exception as e:
         print(f"  [ImageEngine] Lỗi khi gắn watermark: {e}", flush=True)
 
 def calculate_hashes(file_path: Path):
     with open(file_path, "rb") as f:
         md5_hash = hashlib.md5(f.read()).hexdigest()
-    
+
     dhash_val = None
     if imagehash is not None:
         try:
@@ -76,14 +94,14 @@ def calculate_hashes(file_path: Path):
     return md5_hash, dhash_val
 
 def fetch_architectural_photo_fallback(query: str, out_path: Path) -> bool:
-    print(f"  [ImageEngine] Kích hoạt Fallback ảnh kiến trúc mở: '{query[:40]}...' ", flush=True)
+    print(f"  [ImageEngine] Kích hoạt Fallback ảnh nội thất/xưởng mộc mở: '{query[:45]}...' ", flush=True)
     url = "https://commons.wikimedia.org/w/api.php"
     params = {
         "action": "query",
         "generator": "search",
-        "gsrsearch": f"{query} modern architecture interior",
+        "gsrsearch": f"{query} interior architecture workshop",
         "gsrnamespace": 6,
-        "gsrlimit": 8,
+        "gsrlimit": 10,
         "prop": "imageinfo",
         "iiprop": "url|size",
         "format": "json"
@@ -114,7 +132,7 @@ def fetch_architectural_photo_fallback(query: str, out_path: Path) -> bool:
 def generate_single_image(prompt: str, out_path: Path, max_retries: int = 4) -> bool:
     clean_prompt = prompt.strip()
     if "16:9" not in clean_prompt:
-        clean_prompt += ", 16:9 widescreen, photorealistic architectural photograph, 8k resolution"
+        clean_prompt += ", 16:9 widescreen, photorealistic photograph, 8k resolution"
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -134,7 +152,7 @@ def generate_single_image(prompt: str, out_path: Path, max_retries: int = 4) -> 
                 apply_watermark(out_path)
                 return True
             elif r.status_code in [402, 429]:
-                print(f"  [ImageEngine] API bận (HTTP {r.status_code}), chờ 46s giải phóng rate-limit...", flush=True)
+                print(f"  [ImageEngine] API rate-limit (HTTP {r.status_code}), chờ 46s theo hạn ngạch...", flush=True)
                 time.sleep(46)
             else:
                 print(f"  [ImageEngine] Phản hồi HTTP {r.status_code}, chờ 10s...", flush=True)
@@ -143,7 +161,6 @@ def generate_single_image(prompt: str, out_path: Path, max_retries: int = 4) -> 
             print(f"  [ImageEngine] Lỗi kết nối: {e}, chờ 10s...", flush=True)
             time.sleep(10)
 
-    # Nếu sau các lần thử AI vẫn chưa được, kích hoạt fallback kiến trúc mở
     return fetch_architectural_photo_fallback(clean_prompt[:60], out_path)
 
 def generate_5_unique_images(image_prompts: list, output_dir: Path) -> dict:
@@ -184,8 +201,7 @@ def generate_5_unique_images(image_prompts: list, output_dir: Path) -> dict:
         if not success:
             raise RuntimeError(f"Không thể tạo ảnh độc bản cho {key} sau nhiều lần thử.")
 
-        # Nghỉ nhẹ 1s trước ảnh tiếp theo nếu là lần gọi thành công
         time.sleep(1)
 
-    print(f"\n🎉 [ImageEngine] ĐÃ HOÀN THÀNH TOÀN BỘ 5/5 ẢNH ĐỘC BẢN 16:9 CÓ WATERMARK!", flush=True)
+    print(f"\n🎉 [ImageEngine] ĐÃ HOÀN THÀNH TOÀN BỘ 5/5 ẢNH ĐỘC BẢN 16:9 CÓ WATERMARK FROSTED PILL!", flush=True)
     return generated_files

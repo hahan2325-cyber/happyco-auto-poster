@@ -1,6 +1,9 @@
 """
 Hệ thống tự động đăng bài và tải ảnh lên CMS Happyco
 Sử dụng Playwright Headless, tương thích hoàn hảo trên GitHub Actions Linux Runners
+Đảm bảo:
+- Ảnh chèn vào nội dung bài viết là ảnh FULL HD gốc (không dùng link thumb/150x150)
+- Thiết lập ô #thumbnail đúng chuẩn filename để hiển thị đầy đủ trên CMS và website
 """
 
 import os
@@ -24,7 +27,7 @@ CATEGORY_MAP = {
 }
 
 def upload_image_to_cms(page, image_path: Path, title: str) -> str:
-    print(f"  [Publisher] Đang tải lên CDN: {image_path.name}...")
+    print(f"  [Publisher] Đang tải lên CDN: {image_path.name}...", flush=True)
     page.goto("https://happyco.asia/admin/media", timeout=40000)
     page.wait_for_load_state("networkidle")
     page.wait_for_timeout(1500)
@@ -41,15 +44,10 @@ def upload_image_to_cms(page, image_path: Path, title: str) -> str:
     save_btn.click()
     page.wait_for_timeout(3500)
 
-    # Refresh media library to fetch newly generated CDN url
-    page.goto("https://happyco.asia/admin/media", timeout=40000)
-    page.wait_for_load_state("networkidle")
-    page.wait_for_timeout(1500)
-
-    first_img = page.locator(".table tbody tr").first.locator("img").first
-    cdn_url = first_img.get_attribute("src")
-    print(f"    -> Live CDN URL: {cdn_url}")
-    return cdn_url
+    # Lấy đường link CDN gốc chất lượng cao (FULL HD, không lấy thumb 150x150)
+    cdn_full_url = f"https://media.loveitopcdn.com/19180/{image_path.name}"
+    print(f"    -> Live Full HD CDN URL: {cdn_full_url}", flush=True)
+    return cdn_full_url
 
 def publish_post(article_data: dict, image_files: dict, publish_mode: str = "publish", artifacts_dir: Path = None) -> dict:
     email = os.getenv("CMS_EMAIL") or os.getenv("HAPPYCO_EMAIL", "").strip()
@@ -62,7 +60,7 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
         artifacts_dir = Path(__file__).resolve().parent / "output"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    print("\n[Publisher] Khởi chạy Playwright đăng nhập Happyco Admin...")
+    print("\n[Publisher] Khởi chạy Playwright đăng nhập Happyco Admin...", flush=True)
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
@@ -86,7 +84,7 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
         if "/admin/login" in page.url:
             raise RuntimeError("Đăng nhập thất bại! Vui lòng kiểm tra lại tài khoản mật khẩu CMS.")
 
-        print("  [Publisher] Đăng nhập quản trị Happyco thành công!")
+        print("  [Publisher] Đăng nhập quản trị Happyco thành công!", flush=True)
 
         # 2. Upload 5 unique images
         cdn_urls = {}
@@ -99,26 +97,26 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
             cdn_url = upload_image_to_cms(page, local_img, title)
             cdn_urls[key] = cdn_url
 
-        # 3. Replace image placeholders in HTML
+        # 3. Replace image placeholders in HTML with Full HD CDN URLs
         content_html = article_data.get("content_html", "")
         for idx in range(1, 5):
             k = f"h2_{idx}"
             placeholder = f"IMAGE_PLACEHOLDER_{idx}"
             if k in cdn_urls and placeholder in content_html:
                 content_html = content_html.replace(placeholder, cdn_urls[k])
-        
-        # Verify no fake footer is inside content_html
-        content_html = content_html.replace("0947.888.306", "").strip()
+
+        # Đảm bảo KHÔNG có bất kỳ link thumb 150x150 nào lọt vào nội dung bài viết
+        content_html = content_html.replace('/thumb/150x150/', '/').replace('?zc=1', '')
 
         # 4. Open Post Creation Form
-        print("  [Publisher] Đang mở trang thêm bài viết mới...")
+        print("  [Publisher] Đang mở trang thêm bài viết mới...", flush=True)
         page.goto("https://happyco.asia/admin/post/create", timeout=40000)
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(2000)
 
         # Fill Title
         page.fill('input[name="title"]', article_data["title"])
-        
+
         # Fill Meta
         tags = article_data.get("tags", "Happyco, nội thất Happyco, xưởng mộc biên hòa")
         if page.locator('input[name="meta_keyword"]').count() > 0:
@@ -135,23 +133,31 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
             if cname in req_cat or req_cat in cname:
                 cat_id = cid
                 break
-        
+
         if page.locator('select[name="cat_id"]').count() > 0:
             page.select_option('select[name="cat_id"]', cat_id)
-            print(f"  [Publisher] Đã chọn danh mục: {req_cat} (ID {cat_id})")
+            print(f"  [Publisher] Đã chọn danh mục: {req_cat} (ID {cat_id})", flush=True)
 
-        # Set Featured Thumbnail
-        thumb_url = cdn_urls.get("thumb", list(cdn_urls.values())[0] if cdn_urls else "")
-        if thumb_url:
-            page.evaluate("""(turl) => {
-                let el = document.getElementById('thumbnail');
-                if (el) el.value = turl;
-                let preview = document.querySelector('.thumbnail-preview, img.thumbnail');
-                if (preview) preview.src = turl;
-            }""", thumb_url)
-            print(f"  [Publisher] Đã thiết lập Thumbnail bài viết: {thumb_url}")
+        # 5. Set Featured Thumbnail chuẩn xác (truyền filename vào #thumbnail và link thumb vào #holder_thumbnail)
+        thumb_img_path = image_files.get("thumb")
+        thumb_filename = thumb_img_path.name if thumb_img_path else "happyco_thumb.jpg"
+        thumb_preview_url = f"https://media.loveitopcdn.com/19180/thumb/150x150/{thumb_filename}?zc=1"
 
-        # Inject Content into CKEditor
+        page.evaluate("""({tval, tprev}) => {
+            let el = document.getElementById('thumbnail');
+            if (el) {
+                el.value = tval;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            let holder = document.getElementById('holder_thumbnail');
+            if (holder) {
+                holder.src = tprev;
+            }
+        }""", {"tval": thumb_filename, "tprev": thumb_preview_url})
+        print(f"  [Publisher] Đã thiết lập Thumbnail chuẩn: {thumb_filename}", flush=True)
+
+        # 6. Inject Content into CKEditor
         desc_text = article_data.get("description", "")
         page.evaluate("""({desc, content}) => {
             if (window.CKEDITOR && window.CKEDITOR.instances) {
@@ -192,7 +198,7 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
         page.screenshot(path=str(screenshot_preview))
 
         # Submit form
-        print("  [Publisher] Đang lưu và xuất bản bài viết...")
+        print("  [Publisher] Đang lưu và xuất bản bài viết...", flush=True)
         page.evaluate("""() => {
             if (window.CKEDITOR && window.CKEDITOR.instances) {
                 for (let k in window.CKEDITOR.instances) {
@@ -234,7 +240,7 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
 
         browser.close()
 
-    print(f"\n🎉 [Publisher] XUẤT BẢN THÀNH CÔNG! Post ID: {post_info.get('id') if post_info else 'N/A'}")
+    print(f"\n🎉 [Publisher] XUẤT BẢN THÀNH CÔNG! Post ID: {post_info.get('id') if post_info else 'N/A'}", flush=True)
     return {
         "status": "success",
         "post_info": post_info,
