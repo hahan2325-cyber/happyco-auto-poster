@@ -60,6 +60,7 @@ jobs:
 
       - name: 🚀 Khởi chạy hệ thống tự động đăng bài Happyco
         env:
+          PYTHONUNBUFFERED: "1"
           CMS_EMAIL: ${{ secrets.CMS_EMAIL }}
           CMS_PASSWORD: ${{ secrets.CMS_PASSWORD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

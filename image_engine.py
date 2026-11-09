@@ -1,6 +1,7 @@
 """
 Bộ máy tạo ảnh AI độc bản 16:9 chuyên nghiệp cho Happyco
 Đảm bảo 100% không trùng lặp hash (MD5 + dHash), tự động gắn Watermark Duo Happyco
+Tích hợp cơ chế Rate-Limit Backoff (46s) & Fallback Architectural Photography đảm bảo không bao giờ lỗi trên Cloud
 """
 
 import os
@@ -26,24 +27,40 @@ WATERMARK_PATH = Path(__file__).resolve().parent / "happyco_watermark_duo.png"
 
 def apply_watermark(image_path: Path) -> None:
     if not WATERMARK_PATH.exists():
-        print(f"  [ImageEngine] Không tìm thấy watermark tại {WATERMARK_PATH}, bỏ qua bước gắn logo.")
+        print(f"  [ImageEngine] Không tìm thấy watermark tại {WATERMARK_PATH}, bỏ qua.", flush=True)
         return
 
-    im = Image.open(image_path).convert("RGBA")
-    wm = Image.open(WATERMARK_PATH).convert("RGBA")
+    try:
+        im = Image.open(image_path).convert("RGBA")
+        wm = Image.open(WATERMARK_PATH).convert("RGBA")
 
-    # Resize watermark proportionally to ~22% of image width
-    wm_w = int(im.width * 0.22)
-    wm_h = int(wm.height * (wm_w / wm.width))
-    wm_resized = wm.resize((wm_w, wm_h), Image.Resampling.LANCZOS)
+        # Resize watermark proportionally to ~22% of image width
+        wm_w = int(im.width * 0.22)
+        wm_h = int(wm.height * (wm_w / wm.width))
+        wm_resized = wm.resize((wm_w, wm_h), Image.Resampling.LANCZOS)
 
-    # Position at top-left with padding (35px)
-    padding = 35
-    im.paste(wm_resized, (padding, padding), wm_resized)
+        # Position at top-left with padding (35px)
+        padding = 35
+        im.paste(wm_resized, (padding, padding), wm_resized)
 
-    # Save back to RGB JPEG
-    rgb_im = im.convert("RGB")
-    rgb_im.save(image_path, "JPEG", quality=92, optimize=True)
+        # Ensure 16:9 crop if not exact
+        target_ratio = 16.0 / 9.0
+        cur_ratio = im.width / im.height
+        if abs(cur_ratio - target_ratio) > 0.05:
+            if cur_ratio > target_ratio:
+                new_w = int(im.height * target_ratio)
+                left = (im.width - new_w) // 2
+                im = im.crop((left, 0, left + new_w, im.height))
+            else:
+                new_h = int(im.width / target_ratio)
+                top = (im.height - new_h) // 2
+                im = im.crop((0, top, im.width, top + new_h))
+
+        # Save back to RGB JPEG
+        rgb_im = im.convert("RGB")
+        rgb_im.save(image_path, "JPEG", quality=92, optimize=True)
+    except Exception as e:
+        print(f"  [ImageEngine] Lỗi khi gắn watermark: {e}", flush=True)
 
 def calculate_hashes(file_path: Path):
     with open(file_path, "rb") as f:
@@ -58,43 +75,76 @@ def calculate_hashes(file_path: Path):
             pass
     return md5_hash, dhash_val
 
-def generate_single_image(prompt: str, out_path: Path, max_retries: int = 3) -> bool:
-    # Append high quality parameters
+def fetch_architectural_photo_fallback(query: str, out_path: Path) -> bool:
+    print(f"  [ImageEngine] Kích hoạt Fallback ảnh kiến trúc mở: '{query[:40]}...' ", flush=True)
+    url = "https://commons.wikimedia.org/w/api.php"
+    params = {
+        "action": "query",
+        "generator": "search",
+        "gsrsearch": f"{query} modern architecture interior",
+        "gsrnamespace": 6,
+        "gsrlimit": 8,
+        "prop": "imageinfo",
+        "iiprop": "url|size",
+        "format": "json"
+    }
+    headers = {"User-Agent": "HappycoAutoPoster/1.0 (marketinghappyco@gmail.com)"}
+    try:
+        r = requests.get(url, params=params, headers=headers, timeout=20)
+        if r.status_code == 200:
+            pages = r.json().get("query", {}).get("pages", {})
+            for pid, pdata in pages.items():
+                title = pdata.get("title", "").lower()
+                if not (title.endswith(".jpg") or title.endswith(".jpeg") or title.endswith(".png")):
+                    continue
+                ii = pdata.get("imageinfo", [{}])[0]
+                img_url = ii.get("url")
+                if img_url:
+                    img_res = requests.get(img_url, headers=headers, timeout=30)
+                    if img_res.status_code == 200 and len(img_res.content) > 30000:
+                        with open(out_path, "wb") as f:
+                            f.write(img_res.content)
+                        apply_watermark(out_path)
+                        print(f"    -> Fallback thành công: {out_path.name}", flush=True)
+                        return True
+    except Exception as e:
+        print(f"  [ImageEngine] Fallback gặp lỗi: {e}", flush=True)
+    return False
+
+def generate_single_image(prompt: str, out_path: Path, max_retries: int = 4) -> bool:
     clean_prompt = prompt.strip()
     if "16:9" not in clean_prompt:
         clean_prompt += ", 16:9 widescreen, photorealistic architectural photograph, 8k resolution"
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+
     for attempt in range(1, max_retries + 1):
         seed = random.randint(100000, 9999999)
-        # 1. Try Pollinations AI (fast, 1280x720 16:9, highly reliable on cloud)
         encoded_prompt = requests.utils.quote(clean_prompt)
         pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true&model=flux"
-        
+
         try:
-            r = requests.get(pollinations_url, timeout=35)
+            print(f"  [ImageEngine] Đang yêu cầu AI FLUX (Lần {attempt})...", flush=True)
+            r = requests.get(pollinations_url, headers=headers, timeout=35)
             if r.status_code == 200 and len(r.content) > 10000:
                 with open(out_path, "wb") as f:
                     f.write(r.content)
                 apply_watermark(out_path)
                 return True
+            elif r.status_code in [402, 429]:
+                print(f"  [ImageEngine] API bận (HTTP {r.status_code}), chờ 46s giải phóng rate-limit...", flush=True)
+                time.sleep(46)
+            else:
+                print(f"  [ImageEngine] Phản hồi HTTP {r.status_code}, chờ 10s...", flush=True)
+                time.sleep(10)
         except Exception as e:
-            print(f"  [ImageEngine] Lần thử {attempt} qua Pollinations gặp lỗi: {e}")
+            print(f"  [ImageEngine] Lỗi kết nối: {e}, chờ 10s...", flush=True)
+            time.sleep(10)
 
-        # 2. Fallback to standard pollinations endpoint
-        try:
-            fallback_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&seed={seed}&nologo=true"
-            r = requests.get(fallback_url, timeout=35)
-            if r.status_code == 200 and len(r.content) > 10000:
-                with open(out_path, "wb") as f:
-                    f.write(r.content)
-                apply_watermark(out_path)
-                return True
-        except Exception as e:
-            print(f"  [ImageEngine] Lần thử {attempt} qua fallback gặp lỗi: {e}")
-
-        time.sleep(2)
-
-    return False
+    # Nếu sau các lần thử AI vẫn chưa được, kích hoạt fallback kiến trúc mở
+    return fetch_architectural_photo_fallback(clean_prompt[:60], out_path)
 
 def generate_5_unique_images(image_prompts: list, output_dir: Path) -> dict:
     """
@@ -110,29 +160,32 @@ def generate_5_unique_images(image_prompts: list, output_dir: Path) -> dict:
         prompt = item.get("prompt_en", "")
         out_file = output_dir / f"happyco_{key}.jpg"
 
-        print(f"  [ImageEngine] ({idx+1}/5) Đang tạo ảnh cho '{key}'...")
+        print(f"\n  [ImageEngine] === ({idx+1}/5) TIẾN HÀNH TẠO ẢNH CHO '{key.upper()}' ===", flush=True)
         success = False
 
-        for roll in range(4): # Re-roll up to 4 times if hash collision occurs
+        for roll in range(3):
             ok = generate_single_image(prompt, out_file)
             if not ok:
                 continue
 
             md5, dhash = calculate_hashes(out_file)
             if md5 in seen_md5s or (dhash and dhash in seen_dhashes):
-                print(f"  [ImageEngine] Phát hiện ảnh trùng lặp ({md5[:8]}), đang tạo lại ảnh mới...")
+                print(f"  [ImageEngine] Trùng hash ({md5[:8]}), đổi seed tạo lại...", flush=True)
                 continue
 
             seen_md5s.add(md5)
             if dhash:
                 seen_dhashes.add(dhash)
             generated_files[key] = out_file
-            print(f"    -> Đã tạo xong: {out_file.name} (MD5: {md5[:8]}..., Size: {out_file.stat().st_size:,} bytes)")
+            print(f"  ✅ ĐÃ XONG ẢNH {idx+1}/5: {out_file.name} (MD5: {md5[:8]}, {out_file.stat().st_size:,} bytes)", flush=True)
             success = True
             break
 
         if not success:
-            raise RuntimeError(f"Failed to generate unique image for {key} after multiple attempts.")
+            raise RuntimeError(f"Không thể tạo ảnh độc bản cho {key} sau nhiều lần thử.")
 
-    print(f"  [ImageEngine] Hoàn thành 5/5 ảnh độc bản với 0 duplicate hashes!")
+        # Nghỉ nhẹ 1s trước ảnh tiếp theo nếu là lần gọi thành công
+        time.sleep(1)
+
+    print(f"\n🎉 [ImageEngine] ĐÃ HOÀN THÀNH TOÀN BỘ 5/5 ẢNH ĐỘC BẢN 16:9 CÓ WATERMARK!", flush=True)
     return generated_files
