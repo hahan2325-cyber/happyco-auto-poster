@@ -1,0 +1,93 @@
+name: Happyco Autonomous Cloud Poster 24/7
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Chủ đề bài viết (để trống nếu muốn AI tự chọn chủ đề xu hướng)'
+        required: false
+        default: ''
+      category:
+        description: 'Chuyên mục bài viết'
+        type: choice
+        options:
+          - 'BLOG NỘI THẤT'
+          - 'GIA CÔNG VÁN CÔNG NGHIỆP'
+          - 'THIẾT KẾ THI CÔNG NỘI THẤT'
+          - 'BLOG PHỤ KIỆN'
+        default: 'BLOG NỘI THẤT'
+      publish_mode:
+        description: 'Trạng thái đăng bài'
+        type: choice
+        options:
+          - 'publish'
+          - 'draft'
+        default: 'publish'
+
+  issues:
+    types: [opened]
+
+  schedule:
+    # 11:00 AM Giờ Việt Nam (UTC+7 = 04:00 UTC)
+    - cron: '0 4 * * *'
+    # 17:00 PM Giờ Việt Nam (UTC+7 = 10:00 UTC)
+    - cron: '0 10 * * *'
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  auto-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Cài đặt Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Cài đặt thư viện dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: 🚀 Khởi chạy hệ thống tự động đăng bài Happyco
+        env:
+          CMS_EMAIL: ${{ secrets.CMS_EMAIL }}
+          CMS_PASSWORD: ${{ secrets.CMS_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          TOPIC=""
+          CATEGORY="BLOG NỘI THẤT"
+          PUB_MODE="publish"
+          ISSUE_NUM=0
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TOPIC="${{ github.event.inputs.topic }}"
+            CATEGORY="${{ github.event.inputs.category }}"
+            PUB_MODE="${{ github.event.inputs.publish_mode }}"
+          elif [ "${{ github.event_name }}" = "issues" ]; then
+            TOPIC="${{ github.event.issue.title }}"
+            ISSUE_NUM=${{ github.event.issue.number }}
+          fi
+
+          echo "Chạy với Topic: '$TOPIC', Category: '$CATEGORY', Mode: '$PUB_MODE', Issue: '$ISSUE_NUM'"
+          python main.py --topic "$TOPIC" --category "$CATEGORY" --publish-mode "$PUB_MODE" --issue-number "$ISSUE_NUM"
+
+      - name: 📸 Lưu ảnh và báo cáo Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: happyco-run-artifacts
+          path: output/
+          retention-days: 14
