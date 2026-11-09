@@ -4,6 +4,8 @@ Sử dụng Playwright Headless, tương thích hoàn hảo trên GitHub Actions
 Đảm bảo:
 - Ảnh chèn vào nội dung bài viết là ảnh FULL HD gốc (không dùng link thumb/150x150)
 - Thiết lập ô #thumbnail đúng chuẩn filename để hiển thị đầy đủ trên CMS và website
+- Không có bất kỳ watermark bên thứ 3 nào
+- Giữ vững tính bất biến của chân trang hệ thống
 """
 
 import os
@@ -16,15 +18,6 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
-
-CATEGORY_MAP = {
-    "BLOG NỘI THẤT": "266",
-    "GIA CÔNG VÁN CÔNG NGHIỆP": "265",
-    "THIẾT KẾ THI CÔNG NỘI THẤT": "264",
-    "BLOG PHỤ KIỆN": "396",
-    "VÁN CÔNG NGHIỆP": "412",
-    "DỊCH VỤ": "414"
-}
 
 def upload_image_to_cms(page, image_path: Path, title: str) -> str:
     print(f"  [Publisher] Đang tải lên CDN: {image_path.name}...", flush=True)
@@ -88,22 +81,27 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
 
         # 2. Upload 5 unique images
         cdn_urls = {}
-        for item in article_data.get("image_prompts", []):
-            key = item.get("key")
+        for key in ["thumb", "h2_1", "h2_2", "h2_3", "h2_4"]:
             local_img = image_files.get(key)
             if not local_img:
                 continue
-            title = item.get("title_vi", f"Hinh anh Happyco {key}")
-            cdn_url = upload_image_to_cms(page, local_img, title)
+            title = f"Happyco - {article_data.get('title', '')} - {key}"
+            cdn_url = upload_image_to_cms(page, Path(local_img), title)
             cdn_urls[key] = cdn_url
 
         # 3. Replace image placeholders in HTML with Full HD CDN URLs
         content_html = article_data.get("content_html", "")
         for idx in range(1, 5):
             k = f"h2_{idx}"
-            placeholder = f"IMAGE_PLACEHOLDER_{idx}"
-            if k in cdn_urls and placeholder in content_html:
-                content_html = content_html.replace(placeholder, cdn_urls[k])
+            if k in cdn_urls:
+                for ph in [f"IMAGE_PLACEHOLDER_{idx}", f"IMAGE_PLACEHOLDER_H2_{idx}", f"{{{{IMAGE_H2_{idx}}}}}"]:
+                    if ph in content_html:
+                        content_html = content_html.replace(ph, cdn_urls[k])
+
+        if "thumb" in cdn_urls:
+            for ph in ["IMAGE_PLACEHOLDER_THUMB", "{{IMAGE_THUMB}}"]:
+                if ph in content_html:
+                    content_html = content_html.replace(ph, cdn_urls["thumb"])
 
         # Đảm bảo KHÔNG có bất kỳ link thumb 150x150 nào lọt vào nội dung bài viết
         content_html = content_html.replace('/thumb/150x150/', '/').replace('?zc=1', '')
@@ -114,36 +112,39 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(2000)
 
-        # Fill Title
+        # Fill Title & Slug
         page.fill('input[name="title"]', article_data["title"])
+        if article_data.get("slug") and page.locator('input[name="slug"]').count() > 0:
+            page.fill('input[name="slug"]', article_data["slug"])
 
         # Fill Meta
-        tags = article_data.get("tags", "Happyco, nội thất Happyco, xưởng mộc biên hòa")
+        tags = article_data.get("keywords") or article_data.get("tags") or "Happyco, nội thất Happyco, xưởng mộc biên hòa"
         if page.locator('input[name="meta_keyword"]').count() > 0:
             page.fill('input[name="meta_keyword"]', tags)
         if page.locator('input[name="meta_title"]').count() > 0:
             page.fill('input[name="meta_title"]', article_data.get("meta_title", article_data["title"]))
         if page.locator('textarea[name="meta_description"]').count() > 0:
-            page.fill('textarea[name="meta_description"]', article_data.get("meta_description", article_data["description"]))
+            page.fill('textarea[name="meta_description"]', article_data.get("meta_description", article_data.get("description", "")))
 
         # Select Category
-        req_cat = str(article_data.get("category", "BLOG NỘI THẤT")).upper()
-        if "GIA CÔNG" in req_cat or "265" in req_cat:
+        cat_id = str(article_data.get("cat_id", "266"))
+        req_cat = str(article_data.get("category", "")).upper()
+        if "GIA CÔNG" in req_cat or "265" in req_cat or cat_id == "265":
             cat_id = "265"
-        elif "PHỤ KIỆN" in req_cat or "396" in req_cat:
+        elif "PHỤ KIỆN" in req_cat or "396" in req_cat or cat_id == "396":
             cat_id = "396"
-        elif "THIẾT KẾ THI CÔNG" in req_cat or "264" in req_cat:
+        elif "THIẾT KẾ THI CÔNG" in req_cat or "264" in req_cat or cat_id == "264":
             cat_id = "264"
         else:
             cat_id = "266"
 
         if page.locator('select[name="cat_id"]').count() > 0:
             page.select_option('select[name="cat_id"]', cat_id)
-            print(f"  [Publisher] Đã chọn danh mục: {req_cat} (ID {cat_id})", flush=True)
+            print(f"  [Publisher] Đã chọn danh mục ID: {cat_id}", flush=True)
 
         # 5. Set Featured Thumbnail chuẩn xác (truyền filename vào #thumbnail và link thumb vào #holder_thumbnail)
         thumb_img_path = image_files.get("thumb")
-        thumb_filename = thumb_img_path.name if thumb_img_path else "happyco_thumb.jpg"
+        thumb_filename = Path(thumb_img_path).name if thumb_img_path else "happyco_thumb.jpg"
         thumb_preview_url = f"https://media.loveitopcdn.com/19180/thumb/150x150/{thumb_filename}?zc=1"
 
         page.evaluate("""({tval, tprev}) => {
