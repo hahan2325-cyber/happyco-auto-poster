@@ -127,12 +127,15 @@ def publish_post(article_data: dict, image_files: dict, publish_mode: str = "pub
             page.fill('textarea[name="meta_description"]', article_data.get("meta_description", article_data["description"]))
 
         # Select Category
-        cat_id = "266" # Default: BLOG NỘI THẤT
-        req_cat = article_data.get("category", "BLOG NỘI THẤT").upper()
-        for cname, cid in CATEGORY_MAP.items():
-            if cname in req_cat or req_cat in cname:
-                cat_id = cid
-                break
+        req_cat = str(article_data.get("category", "BLOG NỘI THẤT")).upper()
+        if "GIA CÔNG" in req_cat or "265" in req_cat:
+            cat_id = "265"
+        elif "PHỤ KIỆN" in req_cat or "396" in req_cat:
+            cat_id = "396"
+        elif "THIẾT KẾ THI CÔNG" in req_cat or "264" in req_cat:
+            cat_id = "264"
+        else:
+            cat_id = "266"
 
         if page.locator('select[name="cat_id"]').count() > 0:
             page.select_option('select[name="cat_id"]', cat_id)

@@ -211,6 +211,7 @@ def generate_article(topic_title: Optional[str] = None, category: str = "BLOG Ná
                 raw = raw[:-3]
 
             data = json.loads(raw.strip())
+            data["category"] = category
 
             # Strip any accidental footer box
             content_html = data.get("content_html", "")
