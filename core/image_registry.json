@@ -935,6 +935,36 @@
    "post": "2374",
    "hash": "73545cdc7cd97099731d7295689568d13156f112f356b15489b5c9977a187a52",
    "source": "real_workshop_photo"
+  },
+  {
+   "file": "chính máy cnc ván.jpg",
+   "post": "test_run",
+   "hash": "19f099d299f3b93361b3706372721647254f4403566b9f8b0e838f860f8b0683",
+   "source": "real_factory"
+  },
+  {
+   "file": "đo chi tiết khi cnc.jpg",
+   "post": "test_run",
+   "hash": "95d19dca8d324dd2dd94339453983398399c4cd84f5e2f2786e9441227812369",
+   "source": "real_factory"
+  },
+  {
+   "file": "cắt CNC ván.jpg",
+   "post": "test_run",
+   "hash": "81ba25ba6d2ad92cd167870df24cf271cc324c1b171b273157615721e7212725",
+   "source": "real_factory"
+  },
+  {
+   "file": "dán chỉ canh.jpg",
+   "post": "test_run",
+   "hash": "d81ec83dcc35cd77c879e84fc1dec1f4070df21d801fcb0fa69ca1f2c4f088d6",
+   "source": "real_factory"
+  },
+  {
+   "file": "chuẩn bị mũi khoan.jpg",
+   "post": "test_run",
+   "hash": "1f869f06990ed90ed91d791cc93cc66e26b5c4f648630c697463521167336791",
+   "source": "real_factory"
   }
  ]
 }

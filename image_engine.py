@@ -58,20 +58,8 @@ def apply_watermark(image_path: Path) -> None:
         wm_h = int(wm.height * (wm_w / wm.width))
         wm_resized = wm.resize((wm_w, wm_h), Image.Resampling.LANCZOS)
 
-        # Tạo container kính mờ trắng (Pill) bo tròn góc 12px để logo luôn tương phản 100% trên mọi loại nền
-        pad_x = 16
-        pad_y = 10
-        pill_w = wm_w + pad_x * 2
-        pill_h = wm_h + pad_y * 2
-
-        pill = Image.new("RGBA", (pill_w, pill_h), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(pill)
-        # Nền trắng mờ 90% opacity (alpha 230)
-        draw.rounded_rectangle([(0, 0), (pill_w, pill_h)], radius=12, fill=(255, 255, 255, 230))
-        pill.paste(wm_resized, (pad_x, pad_y), wm_resized)
-
-        # 3. GẮN LOGO VÀO GÓC TRÊN BÊN TRÁI (35px padding)
-        im.paste(pill, (35, 35), pill)
+        # 3. GẮN LOGO VÀO GÓC TRÊN BÊN TRÁI (35px padding) - DÁN TRỰC TIẾP ALPHA TRONG SUỐT (CẤM TUYỆT ĐỐI NỀN TRẮNG/PILL)
+        im.paste(wm_resized, (35, 35), wm_resized)
 
         # Lưu lại JPEG chất lượng cao 92%
         rgb_im = im.convert("RGB")
