@@ -33,15 +33,24 @@ class ChiefQAAgent:
         else:
             report["checks"]["no_banned_brands"] = "PASS"
 
-        # 2. Kiểm tra khối chân trang (TUYỆT ĐỐI KHÔNG tự chèn chữ ký/địa chỉ sai lệch)
+        # 2. Kiểm tra ô thông tin hệ thống cố định (BẮT BUỘC PHẢI CÓ 526/2 LONG BÌNH & 0946 272 286 ĐỨC ANH)
         content_html = article.get("content_html", "")
-        has_custom_footer = bool(re.search(r'0947\.888\.306|dĩ an|chiêu liêu', content_html, re.I))
-        if has_custom_footer:
+        has_mandatory_footer = bool(re.search(r'0946\s*272\s*286', content_html) and re.search(r'long\s*bình', content_html, re.I))
+        if not has_mandatory_footer:
             report["passed"] = False
-            report["errors"].append("Phát hiện chèn khối chân trang/hotline sai lệch vào nội dung bài viết. Hệ thống web đã cố định chân trang.")
-            report["checks"]["clean_footer"] = "FAIL"
+            report["errors"].append("Thiếu ô thông tin cố định bắt buộc của hệ thống (526/2 Long Bình, Hotline 0946 272 286 Đức Anh).")
+            report["checks"]["mandatory_footer"] = "FAIL"
         else:
-            report["checks"]["clean_footer"] = "PASS"
+            report["checks"]["mandatory_footer"] = "PASS (Đầy đủ ô hệ thống cố định xưởng Long Bình & Hotline 0946 272 286)"
+
+        # Cấm chèn số điện thoại lạ hoặc địa chỉ cũ sai lệch (Dĩ An / Chiêu Liêu)
+        has_wrong_address = bool(re.search(r'0947\.888\.306|chiêu\s*liêu|dĩ\s*an', content_html, re.I))
+        if has_wrong_address:
+            report["passed"] = False
+            report["errors"].append("Phát hiện chèn địa chỉ cũ sai lệch (Dĩ An, Chiêu Liêu). Phải là 526/2 Long Bình Đồng Nai!")
+            report["checks"]["no_wrong_address"] = "FAIL"
+        else:
+            report["checks"]["no_wrong_address"] = "PASS"
 
         # 3. Kiểm tra số lượng mục Heading <h2> và ảnh minh họa
         h2_count = content_html.lower().count("<h2")

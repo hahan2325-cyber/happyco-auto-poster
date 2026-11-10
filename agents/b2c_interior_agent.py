@@ -142,5 +142,18 @@ class B2CInteriorAgent:
 <div style="background: #f8fafc; border-left: 4px solid #008848; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; font-size: 15px; color: #334155; line-height: 1.6;">
   🏡 <em>Tham khảo:</em> Quý gia chủ có thể tìm hiểu thêm về năng lực <a href="https://happyco.asia/gioi-thieu.html" style="color: #008848; font-weight: bold; text-decoration: underline;">sản xuất trực tiếp tại xưởng Happyco</a> hoặc chuyên mục <a href="https://happyco.asia/blog.html" style="color: #008848; font-weight: bold; text-decoration: underline;">cẩm nang thiết kế nội thất</a> để lựa chọn phương án tối ưu.
 </div>"""
+
+        # BẮT BUỘC: CÀI ĐẶT CHẾT Ô THÔNG TIN HỆ THỐNG CỐ ĐỊNH Ở CUỐI BÀI VIẾT
+        FIXED_FOOTER = """
+<div style="border: 2px dashed #008848; background: #f6fff9; border-radius: 8px; padding: 18px 22px; margin: 28px 0;">
+  <p style="color: #008848; font-weight: bold; margin: 0 0 8px 0; font-size: 16px;">Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc Tại Các Khu Vực Sau:</p>
+  <p style="margin: 6px 0; color: #333; line-height: 1.6;">- Miền Nam: Thành phố Hồ Chí Minh, Đồng Nai, Tây Ninh, Thành phố Cần Thơ, Vĩnh Long, Đồng Tháp, Cà Mau, An Giang.</p>
+  <p style="margin: 6px 0; color: #333; line-height: 1.6;">📍 <strong>Địa chỉ công ty:</strong> 526/2, Khu phố 8A, Phường Long Bình, thành phố Đồng Nai.</p>
+  <p style="margin: 6px 0; color: #d32f2f; font-weight: bold; font-size: 16px;">📞 Liên hệ: 0946 272 286 (Đức Anh)</p>
+</div>
+"""
+        if "Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc Tại Các Khu Vực Sau" not in html:
+            html += "\n" + FIXED_FOOTER
+
         data["content_html"] = html.strip()
         return data

@@ -134,6 +134,12 @@ def main():
     post_id = post_info.get("id", "N/A")
     post_title = post_info.get("title", article["title"])
 
+    # Đăng ký các ảnh đã dùng vào sổ băm chống trùng lặp tuyệt đối
+    from core.image_registry import register
+    for k, p in image_files.items():
+        register(post_id, str(p), source="real_factory")
+        print(f"  [Image Registry] Đã đăng ký hash ảnh: {p.name}")
+
     print("\n==================================================================")
     print("🎉 BÀI VIẾT ĐÃ ĐƯỢC XUẤT BẢN THÀNH CÔNG VÀO CMS HAPPYCO!")
     print(f"🆔 Post ID: {post_id}")
