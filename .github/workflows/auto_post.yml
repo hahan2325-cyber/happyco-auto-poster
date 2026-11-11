@@ -27,11 +27,10 @@ on:
   issues:
     types: [opened]
 
-  schedule:
-    # 11:00 AM Giờ Việt Nam (UTC+7 = 04:00 UTC)
-    - cron: '0 4 * * *'
-    # 17:00 PM Giờ Việt Nam (UTC+7 = 10:00 UTC)
-    - cron: '0 10 * * *'
+  # ĐÃ TẮT TỰ ĐỘNG CHẠY THEO LỊCH (BẬT LẠI KHI CẦN)
+  # schedule:
+  #   - cron: '0 4 * * *'
+  #   - cron: '0 10 * * *'
 
 permissions:
   contents: write
