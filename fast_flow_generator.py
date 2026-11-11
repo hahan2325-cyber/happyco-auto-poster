@@ -20,23 +20,19 @@ BASE_DIR = Path(__file__).resolve().parent
 WM_PATH = BASE_DIR / "happyco_watermark_duo.png"
 
 def remove_flow_watermark(img_bgr):
-    """Xóa triệt để logo/ngôi sao mờ của Google Flow ở góc dưới bên phải bằng Inpainting"""
+    """Xóa triệt để 100% ngôi sao Google Flow bằng thuật toán Poisson Seamless Blending không để lại vết mờ"""
     h, w = img_bgr.shape[:2]
-    x1, y1 = max(0, w - 220), max(0, h - 180)
-    x2, y2 = w - 5, h - 5
-    patch = img_bgr[y1:y2, x1:x2]
+    star_center = (w - 95, h - 85)
+    source_center = (w - 205, h - 85)
+    pw, ph = 88, 88
     
-    gray_patch = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
-    tophat = cv2.morphologyEx(gray_patch, cv2.MORPH_TOPHAT, kernel)
+    x1 = source_center[0] - pw // 2
+    y1 = source_center[1] - ph // 2
+    src_patch = img_bgr[y1:y1+ph, x1:x1+pw]
     
-    _, mask = cv2.threshold(tophat, 14, 255, cv2.THRESH_BINARY)
-    dilated_mask = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)), iterations=2)
-    
-    inpainted = cv2.inpaint(patch, dilated_mask, 5, cv2.INPAINT_TELEA)
-    res = img_bgr.copy()
-    res[y1:y2, x1:x2] = inpainted
-    return res
+    clone_mask = np.full((ph, pw), 255, dtype=np.uint8)
+    cloned = cv2.seamlessClone(src_patch, img_bgr, clone_mask, star_center, cv2.NORMAL_CLONE)
+    return cloned
 
 def stamp_top_left(img_pil, wm_pil):
     img_rgba = img_pil.convert("RGBA")
