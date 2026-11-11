@@ -18,15 +18,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 B2C_CURATED_TOPICS = [
-    {
-        "keyword": "thiết kế nội thất nhà phố tối ưu diện tích gỗ công nghiệp",
-        "title": "Giải Pháp Thiết Kế Nội Thất Gỗ May Đo Tối Ưu Diện Tích: Biến Nhà Phố Nhỏ Thành Không Gian Sống Rộng Rãi",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_smart_living",
-        "target_audience": "Chủ nhà & Vợ chồng trẻ",
-        "themes": "Hệ tủ âm tường kịch trần giấu đồ thông minh, giường bục đa năng tích hợp ngăn kéo, vách ngăn nan gỗ thoáng khí, cốt ván chống ẩm lõi xanh E1/E0."
-    },
+    # NHÓM 1: CÁC PHONG CÁCH NỘI THẤT NỔI TIẾNG TRÊN THẾ GIỚI
     {
         "keyword": "nội thất phong cách japandi gỗ sồi ấm cúng",
         "title": "Nội Thất Phong Cách Japandi Tinh Tế: Nghệ Thuật Phối Vân Gỗ Tự Nhiên & Đường Bo Cong Mềm Mại Mang Lại Bình Yên",
@@ -35,6 +27,91 @@ B2C_CURATED_TOPICS = [
         "pool": "b2c_japandi_warm",
         "target_audience": "Chủ nhà yêu thẩm mỹ & Kiến trúc sư",
         "themes": "Sự kết hợp giữa nét mộc mạc Nhật Bản và tối giản Bắc Âu, kỹ thuật uốn cong phôi ván CNC, tone màu gỗ sồi ấm áp kết hợp vải nỉ dệt thô mộc."
+    },
+    {
+        "keyword": "nội thất phong cách wabi sabi thô mộc tự nhiên",
+        "title": "Phong Cách Nội Thất Wabi-Sabi: Vẻ Đẹp Bình Yên Từ Vật Liệu Gỗ Mộc Mạc & Khoảng Không Tĩnh Lặng Cho Tâm Hồn",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_wabisabi",
+        "target_audience": "Gia chủ tìm kiếm sự thư thái & Cân bằng cuộc sống",
+        "themes": "Triết lý tôn trọng vẻ đẹp nguyên bản, bề mặt gỗ công nghiệp dập nổi vân gỗ sâu tự nhiên, gam màu đất trung tính, không gian ít đồ đạc để tâm trí thư thái."
+    },
+    {
+        "keyword": "nội thất scandinavian bắc âu tươi sáng",
+        "title": "Phong Cách Nội Thất Scandinavian Bắc Âu: Bí Quyết Đưa Ánh Sáng Tự Nhiên & Gỗ Sáng Màu Vào Nhà Phố Hiện Đại",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_scandinavian",
+        "target_audience": "Vợ chồng trẻ yêu phong cách sống hiện đại",
+        "themes": "Tối đa hóa cửa sổ lấy sáng, phối gỗ tone màu sáng (sồi trắng, tần bì), cây xanh trang trí, thảm len mộc và hệ tủ kệ treo thoáng chân."
+    },
+    {
+        "keyword": "nội thất indochine đông dương đương đại",
+        "title": "Nội Thất Indochine Đương Đại: Nét Hoài Cổ Đông Dương Giao Thoa Nhịp Sống Hiện Đại Qua Chi Tiết Mộc Tinh Xảo",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_indochine",
+        "target_audience": "Gia chủ trung niên & Người yêu văn hóa Á Đông",
+        "themes": "Chi tiết mộc phay rãnh pano chỉ nhẹ nhàng, mắt lưới mây đan tự nhiên trang trí cánh tủ, tone màu gỗ óc chó trầm ấm kết hợp gạch bông hoài niệm."
+    },
+    {
+        "keyword": "nội thất phong cách organic modern đường cong hữu cơ",
+        "title": "Phong Cách Organic Modern: Xu Hướng Nội Thất Đường Cong Hữu Cơ Mềm Mại Mang Thiên Nhiên Vào Gian Phòng",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_organic_modern",
+        "target_audience": "Gia chủ chuộng thẩm mỹ thời thượng & Kiến trúc sư",
+        "themes": "Đường bo cong uốn lượn mềm mại trên các hệ tủ và vách ốp, triệt tiêu góc nhọn sắc bén, màu sắc tự nhiên ấm áp, cảm giác an toàn và dễ chịu."
+    },
+
+    # NHÓM 2: GIẢI BÀI TOÁN THI CÔNG NỘI THẤT THỰC TẾ
+    {
+        "keyword": "giải pháp thi công tủ âm tường che dầm cột nhà phố",
+        "title": "Giải Quyết Bài Toán Nhà Phố Bị Lộ Cột & Dầm Bê Tông: Nghệ Thuật Đóng Tủ Gỗ May Đo Che Khuyết Điểm Xây Dựng",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_solution_beam_column",
+        "target_audience": "Chủ nhà đang xây/sửa nhà phố",
+        "themes": "Kỹ thuật may đo nội thất ôm khít cột nhà, biến góc chết thành hộc tủ trang trí có đèn LED, ốp vách gỗ phẳng che hoàn toàn dầm ngang mất thẩm mỹ."
+    },
+    {
+        "keyword": "chống ẩm mốc nội thất tầng trệt nhà phố",
+        "title": "Bài Toán Chống Ẩm Mốc Cho Nội Thất Tầng Trệt Nhà Phố: Kỹ Thuật Đôn Chân & Keo Dán Cạnh PUR Ngăn Nước Triệt Để",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_solution_moisture",
+        "target_audience": "Chủ nhà vùng nồm ẩm, gần sông ngòi hoặc tầng trệt",
+        "themes": "Kỹ thuật đôn chân nhựa kháng ẩm ngầm cách sàn, cốt gỗ chống ẩm lõi xanh HMR, dán cạnh PUR noline khóa ẩm 100%, bảo vệ chân tủ không bao giờ mốc hỏng."
+    },
+    {
+        "keyword": "nghiệm thu thực tế chuẩn bản vẽ 3d nội thất",
+        "title": "Từ Bản Vẽ 3D Đến Thực Tế Thi Công: Quy Trình Đo Đạc Laser & Cắt CNC Chuẩn Xác Từng Milimet Tại Xưởng Happyco",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_solution_3d_to_reality",
+        "target_audience": "Khách hàng lo sợ thi công thực tế lệch bản vẽ 3D",
+        "themes": "Quy trình đo đạc hiện trạng bằng máy cân mực laser, bóc tách bản vẽ sản xuất bằng phần mềm chuyên dụng, cắt phôi CNC chính xác dung sai dưới 0.2mm."
+    },
+    {
+        "keyword": "kinh nghiệm dự toán chi phí nội thất không phát sinh",
+        "title": "Bí Quyết Dự Toán Chi Phí Hoàn Thiện Nội Thất Trọn Gói: Cách Phân Bổ Ngân Sách Thông Minh & Tránh Phát Sinh",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_solution_budget",
+        "target_audience": "Gia chủ chuẩn bị làm nội thất nhà mới",
+        "themes": "Bóc tách từng hạng mục chi tiết theo mét vuông/mét dài thực tế, kinh nghiệm chọn cốt ván phù hợp từng khu vực, lợi ích khi làm việc trực tiếp tại xưởng sản xuất."
+    },
+
+    # NHÓM 3: KHÔNG GIAN SỐNG, CÔNG NĂNG & SỨC KHỎE GIA ĐÌNH
+    {
+        "keyword": "thiết kế nội thất nhà phố tối ưu diện tích gỗ công nghiệp",
+        "title": "Giải Pháp Thiết Kế Nội Thất Gỗ May Đo Tối Ưu Diện Tích: Biến Nhà Phố Nhỏ Thành Không Gian Sống Rộng Rãi",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_smart_living",
+        "target_audience": "Chủ nhà & Vợ chồng trẻ",
+        "themes": "Hệ tủ âm tường kịch trần giấu đồ thông minh, giường bục đa năng tích hợp ngăn kéo, vách ngăn nan gỗ thoáng khí, cốt ván chống ẩm lõi xanh E1/E0."
     },
     {
         "keyword": "tiêu chuẩn ván e0 e1 an toàn sức khỏe trẻ nhỏ",
@@ -71,6 +148,15 @@ B2C_CURATED_TOPICS = [
         "pool": "b2c_fengshui_master",
         "target_audience": "Chủ nhà & Vợ chồng trung niên",
         "themes": "Nguyên tắc đặt giường ngủ tránh xung sát, hệ tủ quần áo phẳng giấu gương soi, phối màu sắc hợp mệnh tương sinh, ánh sáng dịu nhẹ bồi dưỡng năng lượng."
+    },
+    {
+        "keyword": "thiết kế góc làm việc tại nhà home office sáng tạo",
+        "title": "Thiết Kế Góc Làm Việc Tại Nhà (Home Office) Chuẩn Công Thái Học: Tối Ưu Ánh Sáng & Hệ Giá Sách Kệ Gỗ Truyền Cảm Hứng",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_home_office",
+        "target_audience": "Người làm việc từ xa, Chuyên gia & Doanh nhân",
+        "themes": "Bàn làm việc bo cong chuẩn công thái học, hệ giá sách treo âm tường chịu lực, rãnh giấu dây cáp máy tính thông minh, nguồn sáng tự nhiên giảm mỏi mắt."
     }
 ]
 
