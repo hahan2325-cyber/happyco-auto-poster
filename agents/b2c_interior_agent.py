@@ -11,6 +11,7 @@ import os
 import sys
 import json
 import random
+import re
 from typing import Dict, Any, Optional
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -63,7 +64,7 @@ class B2CInteriorAgent:
             themes = "Thiết kế thi công nội thất cao cấp xưởng Happyco."
 
         prompt = f"""
-        Bạn là Kiến trúc sư trưởng kiêm Giám đốc Thiết kế & Thi công của CÔNG TY CỔ PHẦN HAPPYCO (Biên Hòa, Đồng Nai).
+        Bạn là Chuyên gia Biên tập Nội dung Kiến trúc & Nội thất của CÔNG TY CỔ PHẦN HAPPYCO (Biên Hòa, Đồng Nai).
         Hãy viết 1 bài viết chuẩn SEO đẳng cấp, sâu sắc xuất bản trên website happyco.asia:
 
         Tiêu đề: {topic_title}
@@ -72,9 +73,15 @@ class B2CInteriorAgent:
         Đối tượng độc giả chính: {audience}
         Chủ đề cốt lõi: {themes}
 
+        QUY CHUẨN VĂN PHONG WEB CAO CẤP (ĐÂY LÀ BÀI VIẾT WEBSITE, TUYỆT ĐỐI KHÔNG PHẢI BÀI ĐĂNG FACEBOOK):
+        - TUYỆT ĐỐI CẤM chào hỏi kiểu mạng xã hội: Không viết 'Chào anh em', 'Xin chào các bạn', 'Chào quý độc giả', 'Anh em thân mến'...
+        - TUYỆT ĐỐI CẤM xưng hô cá nhân hay tự giới thiệu chức danh: Không viết 'Tôi là...', 'Với tư cách là Kiến trúc sư trưởng kiêm Giám đốc...', 'Chúng tôi là đội ngũ kỹ sư...'. Văn phong phải mang tính chuyên gia khách quan, sang trọng, tập trung hoàn toàn vào giải pháp không gian, công năng, phong thủy và trải nghiệm sống của gia chủ.
+        - MÔ TẢ BÀI VIẾT (description): TUYỆT ĐỐI CẤM bắt đầu bằng 'Bài viết...', 'Bài viết này...', 'Bài viết chia sẻ...'. Mô tả phải đi thẳng vào tóm lược giải pháp thiết kế, công năng và giá trị thẩm mỹ cho căn hộ/nhà phố (140-160 ký tự chuẩn SEO).
+        - Đoạn mở đầu (Sapo): Đi thẳng vào thực trạng xu hướng nội thất hiện đại và giải pháp kiến trúc đột phá, không rào đón dài dòng.
+
         TIÊU CHUẨN NỘI DUNG 3 NHÓM ĐỐI TƯỢNG:
-        1. Với Chủ nhà: Phân tích sâu về độ bền cốt ván chống ẩm, phong thủy phòng khách/phòng ngủ vượng khí tài lộc, lợi ích tiết kiệm 20-30% chi phí khi làm việc trực tiếp tại xưởng sản xuất quy mô lớn Happyco không qua trung gian.
-        2. Với Vợ chồng trẻ: Không gian lãng mạn giữ lửa hôn nhân, bố trí góc bo cong tinh tế an toàn cho trẻ nhỏ chạy nhảy, cam kết vật liệu ván chuẩn phát thải E1/E0 an toàn cho sức khỏe hô hấp của bé.
+        1. Với Chủ nhà: Phân tích sâu về độ bền cốt ván chống ẩm, phong thủy vượng khí tài lộc, lợi ích tiết kiệm 20-30% chi phí khi làm việc trực tiếp tại xưởng sản xuất quy mô lớn Happyco không qua trung gian.
+        2. Với Vợ chồng trẻ: Không gian lãng mạn giữ lửa tổ ấm, bố trí góc bo cong tinh tế an toàn cho trẻ nhỏ chạy nhảy, cam kết vật liệu ván chuẩn phát thải E1/E0 an toàn cho sức khỏe hô hấp của bé.
         3. Với Kiến trúc sư: Tôn trọng 100% ngôn ngữ thiết kế 3D, độ chính xác sắc nét từng chi tiết mộc (rãnh âm LED, khe bóng shadow gap, dán nẹp PUR noline không lộ vết dán keo lem nhem).
 
         QUY TẮC BẮT BUỘC:
@@ -96,12 +103,12 @@ class B2CInteriorAgent:
         {{
             "title": "{topic_title}",
             "slug": "...",
-            "description": "...",
+            "description": "Tóm tắt súc tích giải pháp thiết kế nội thất chuẩn SEO (CẤM chữ 'Bài viết...')",
             "keywords": "{keyword}, nội thất happyco, thiết kế thi công nội thất biên hòa đồng nai",
             "category": "BLOG NỘI THẤT",
             "cat_id": 266,
             "pool": "{pool}",
-            "content_html": "<p>Đoạn sapo dẫn nhập lôi cuốn...</p> ... <h2>1. ...</h2> ... <h2>2. ...</h2> ... <h2>3. ...</h2> ... <h2>4. ...</h2> ..."
+            "content_html": "<p>Đoạn sapo đi thẳng vào xu hướng...</p> ... <h2>1. ...</h2> ... <h2>2. ...</h2> ... <h2>3. ...</h2> ... <h2>4. ...</h2> ..."
         }}
         """
 
@@ -130,9 +137,18 @@ class B2CInteriorAgent:
         data["cat_id"] = 266
         data["category"] = "BLOG NỘI THẤT"
 
-        # Remove any accidental footer/address blocks
-        import re
+        # Chuẩn hóa văn phong web: Xóa sạch chào hỏi FB hoặc tự xưng danh cá nhân
+        desc = data.get("description", "").strip()
+        desc = re.sub(r'^(?:Bài viết|Bài viết này|Bài viết chia sẻ|Bài viết nhằm)\s*(?:này\s*)?(?:chia sẻ|giới thiệu|phân tích|cung cấp)?\s*[:,-]?\s*', '', desc, flags=re.IGNORECASE)
+        data["description"] = desc.strip()
+
         html = data.get("content_html", "")
+        html = re.sub(r'(?:Chào anh em|Xin chào anh em|Chào các bạn|Xin chào các bạn|Anh em thân mến)[!,\.]?\s*', '', html, flags=re.IGNORECASE)
+        html = re.sub(r'Với tư cách là[^,\.\n]+,\s*(?:tôi\s*)?', '', html, flags=re.IGNORECASE)
+        html = re.sub(r'Tôi là[^,\.\n]+(?:kiêm|của)[^,\.\n]+,\s*', '', html, flags=re.IGNORECASE)
+        html = re.sub(r'Chúng tôi là đội ngũ kỹ sư[^,\.\n]+,\s*', '', html, flags=re.IGNORECASE)
+
+        # Remove any accidental footer/address blocks
         html = re.sub(r'<div[^>]*>(?:(?!<\/div>).)*(?:094[67]|Chúng Tôi Nhận Thiết Kế|Khu vực phục vụ|Địa chỉ nhà xưởng).*?<\/div>', '', html, flags=re.DOTALL | re.IGNORECASE)
         html = re.sub(r'<p[^>]*>.*?(?:094[67]|Hotline tư vấn|Địa chỉ công ty).*?</p>', '', html, flags=re.DOTALL | re.IGNORECASE)
 
@@ -157,3 +173,55 @@ class B2CInteriorAgent:
 
         data["content_html"] = html.strip()
         return data
+
+    def plan_outline_and_prompts(self, topic_title: Optional[str] = None) -> Dict[str, Any]:
+        """Tạo dàn ý nhanh & 5 prompts ảnh chất lượng 2K để bơm sang Flow ngay lập tức"""
+        api_key = os.getenv("GEMINI_API_KEY")
+        from google import genai
+        client = genai.Client(api_key=api_key)
+
+        chosen = random.choice(B2C_CURATED_TOPICS)
+        title = topic_title if topic_title else chosen["title"]
+        prompt = f"""
+        Lên dàn bài H2 và 5 prompt ảnh Google Flow (tiếng Anh) cho bài viết nội thất:
+        Tiêu đề: {title}
+        Chuyên mục: BLOG NỘI THẤT (ID: 266)
+
+        YÊU CẦU:
+        - 4 tiêu đề <h2> thiết kế nội thất đẳng cấp.
+        - 5 câu Prompt tiếng Anh chi tiết cho Imagen/Flow (1 ảnh thumbnail tổng quan, 4 ảnh chi tiết ứng với từng H2). Phong cách kiến trúc hiện đại, chụp thực tế documentary, ánh sáng ấm 3000K, tỉ lệ 16:9, không người, không hoa văn kỳ quái.
+
+        Trả về JSON duy nhất:
+        {{
+            "title": "{title}",
+            "slug": "...",
+            "h2_list": ["h2 1", "h2 2", "h2 3", "h2 4"],
+            "prompts": [
+                "prompt thumb...",
+                "prompt h2_1...",
+                "prompt h2_2...",
+                "prompt h2_3...",
+                "prompt h2_4..."
+            ]
+        }}
+        """
+        resp = None
+        for m in ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite"]:
+            try:
+                resp = client.models.generate_content(model=m, contents=prompt)
+                if resp and resp.text: break
+            except Exception:
+                continue
+
+        text = resp.text.strip()
+        if text.startswith("```json"): text = text[7:]
+        if text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
+        plan = json.loads(text.strip())
+        plan["category"] = "BLOG NỘI THẤT"
+        plan["cat_id"] = 266
+        return plan
+
+    def write_full_article_from_plan(self, plan: Dict[str, Any]) -> Dict[str, Any]:
+        """Viết toàn văn bài viết chi tiết chuẩn SEO từ dàn bài đã có trong lúc Flow vẽ ảnh"""
+        return self.produce_article(topic_title=plan["title"])
