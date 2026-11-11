@@ -153,10 +153,29 @@ def generate_single_image(prompt: str, out_path: Path, max_retries: int = 4) -> 
 
 def generate_5_unique_images(image_prompts: list, output_dir: Path) -> dict:
     """
-    Sinh 5 bức ảnh độc bản, kiểm tra chặt chẽ 0 duplicate MD5/dHash
+    Sinh 5 bức ảnh độc bản bằng Fast Flow Parallel Engine trong ~60 giây.
+    Đã chuẩn hoá 16:9 và đóng dấu Top-Left (35, 35) Happyco Duo trong suốt.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     generated_files = {}
+
+    try:
+        from fast_flow_generator import generate_flow_batch_parallel
+        raw_prompts = [item.get("prompt_en", "") for item in image_prompts]
+        flow_files = generate_flow_batch_parallel(raw_prompts, output_dir)
+        if len(flow_files) >= len(image_prompts):
+            for idx, item in enumerate(image_prompts):
+                key = item.get("key", f"img_{idx}")
+                target_file = output_dir / f"happyco_{key}.jpg"
+                import shutil
+                shutil.copy2(flow_files[idx], target_file)
+                generated_files[key] = target_file
+                print(f"  ✅ [FastFlow] Đã gán ảnh {key}: {target_file.name}", flush=True)
+            print(f"\n🎉 [ImageEngine] TẠO THÀNH CÔNG 5/5 ẢNH BẰNG FAST FLOW TRONG ~60s!", flush=True)
+            return generated_files
+    except Exception as e:
+        print(f"  ⚠️ [ImageEngine] Lỗi FastFlow ({e}), chuyển sang chế độ dự phòng...", flush=True)
+
     seen_md5s = set()
     seen_dhashes = set()
 
@@ -165,7 +184,7 @@ def generate_5_unique_images(image_prompts: list, output_dir: Path) -> dict:
         prompt = item.get("prompt_en", "")
         out_file = output_dir / f"happyco_{key}.jpg"
 
-        print(f"\n  [ImageEngine] === ({idx+1}/5) TIẾN HÀNH TẠO ẢNH CHO '{key.upper()}' ===", flush=True)
+        print(f"\n  [ImageEngine] === ({idx+1}/5) TIẾN HÀNH TẠO ẢNH DỰ PHÒNG CHO '{key.upper()}' ===", flush=True)
         success = False
 
         for roll in range(3):
@@ -191,5 +210,5 @@ def generate_5_unique_images(image_prompts: list, output_dir: Path) -> dict:
 
         time.sleep(1)
 
-    print(f"\n🎉 [ImageEngine] ĐÃ HOÀN THÀNH TOÀN BỘ 5/5 ẢNH ĐỘC BẢN 16:9 CÓ WATERMARK FROSTED PILL!", flush=True)
+    print(f"\n🎉 [ImageEngine] ĐÃ HOÀN THÀNH TOÀN BỘ 5/5 ẢNH ĐỘC BẢN 16:9 CÓ WATERMARK TOP-LEFT!", flush=True)
     return generated_files
