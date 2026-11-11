@@ -19,22 +19,58 @@ if hasattr(sys.stdout, "reconfigure"):
 
 B2C_CURATED_TOPICS = [
     {
-        "keyword": "thiết kế vách tivi phòng khách tủ rượu hiện đại",
-        "title": "Thiết Kế Vách Tivi Phòng Khách Kết Hợp Tủ Rượu Cánh Kính Hiện Đại: Đẳng Cấp Sang Trọng Từ Xưởng Happyco",
+        "keyword": "thiết kế nội thất nhà phố tối ưu diện tích gỗ công nghiệp",
+        "title": "Giải Pháp Thiết Kế Nội Thất Gỗ May Đo Tối Ưu Diện Tích: Biến Nhà Phố Nhỏ Thành Không Gian Sống Rộng Rãi",
         "category": "BLOG NỘI THẤT",
         "cat_id": "266",
-        "pool": "b2c_living",
-        "target_audience": "Chủ nhà & Kiến trúc sư",
-        "themes": "Vách ốp lam sóng than tre phủ vân đá, hệ tủ rượu cánh kính Slim tràn viền gắn đèn LED âm rãnh 4000K, dán nẹp PUR noline tinh tế, bàn trà bo cong an toàn."
+        "pool": "b2c_smart_living",
+        "target_audience": "Chủ nhà & Vợ chồng trẻ",
+        "themes": "Hệ tủ âm tường kịch trần giấu đồ thông minh, giường bục đa năng tích hợp ngăn kéo, vách ngăn nan gỗ thoáng khí, cốt ván chống ẩm lõi xanh E1/E0."
     },
     {
-        "keyword": "thiết kế nội thất phòng ngủ master vợ chồng trẻ",
-        "title": "Thiết Kế Nội Thất Phòng Ngủ Master Cho Vợ Chồng Trẻ: Không Gian Giữ Lửa Tổ Ấm & Tiêu Chuẩn Xanh E1/E0",
+        "keyword": "nội thất phong cách japandi gỗ sồi ấm cúng",
+        "title": "Nội Thất Phong Cách Japandi Tinh Tế: Nghệ Thuật Phối Vân Gỗ Tự Nhiên & Đường Bo Cong Mềm Mại Mang Lại Bình Yên",
         "category": "BLOG NỘI THẤT",
         "cat_id": "266",
-        "pool": "b2c_bedroom",
-        "target_audience": "Vợ chồng trẻ",
-        "themes": "Giường bọc nệm nỉ êm ái bo cong góc chống va đập cho con nhỏ, tủ áo kịch trần cánh kính Slim, bàn phấn treo gương LED cảm ứng, cốt ván E1/E0 an toàn đường hô hấp."
+        "pool": "b2c_japandi_warm",
+        "target_audience": "Chủ nhà yêu thẩm mỹ & Kiến trúc sư",
+        "themes": "Sự kết hợp giữa nét mộc mạc Nhật Bản và tối giản Bắc Âu, kỹ thuật uốn cong phôi ván CNC, tone màu gỗ sồi ấm áp kết hợp vải nỉ dệt thô mộc."
+    },
+    {
+        "keyword": "tiêu chuẩn ván e0 e1 an toàn sức khỏe trẻ nhỏ",
+        "title": "Tiêu Chuẩn Ván Xanh E0/E1 Trong Nội Thất Nhà Ở: Bảo Vệ Hệ Hô Hấp Trẻ Nhỏ & Lựa Chọn Cốt Ván Không Mùi Độc Hại",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_health_eco",
+        "target_audience": "Gia đình có con nhỏ & Phụ nữ mang thai",
+        "themes": "Tác hại của formaldehyde trong ván trôi nổi, chứng nhận phát thải E0/E1, công nghệ nẹp cạnh PUR noline khóa kín cốt ván, bo tròn góc cạnh chống va đập."
+    },
+    {
+        "keyword": "thiết kế phòng khách sum vầy đa thế hệ",
+        "title": "Thiết Kế Phòng Khách Hiện Đại Gắn Kết Đa Thế Hệ: Nghệ Thuật Sắp Đặt Ánh Sáng & Hệ Tủ Kệ Treo Tinh Gọn",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_family_living",
+        "target_audience": "Gia đình đa thế hệ & Chủ nhà",
+        "themes": "Bố cục ghế sofa quây quần, kệ tivi treo tường giấu dây điện thông minh, hệ rãnh âm LED 3000K ấm cúng, bàn trà tròn bo cạnh an toàn cho ông bà và cháu nhỏ."
+    },
+    {
+        "keyword": "thiết kế phòng ngủ trẻ em thông minh sáng tạo",
+        "title": "Thiết Kế Phòng Ngủ Trẻ Em Sáng Tạo: Bố Trí Bàn Học Công Thái Học & Giường Tầng Gỗ Công Nghiệp Chắc Chắn",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_kids_room",
+        "target_audience": "Cha mẹ trẻ có con trong độ tuổi đi học",
+        "themes": "Góc học tập lấy sáng tự nhiên chống cận thị, giường tầng liên hoàn tủ áo bo tròn góc cạnh, thang bước hộp lưu trữ đồ chơi rèn tính tự lập cho bé."
+    },
+    {
+        "keyword": "phong thủy phòng ngủ master vợ chồng hòa thuận",
+        "title": "Phong Thủy Nội Thất Phòng Ngủ Master: Bố Trí Hướng Giường & Luồng Khí Sinh Tài Rước Vượng Khí Cho Gia Chủ",
+        "category": "BLOG NỘI THẤT",
+        "cat_id": "266",
+        "pool": "b2c_fengshui_master",
+        "target_audience": "Chủ nhà & Vợ chồng trung niên",
+        "themes": "Nguyên tắc đặt giường ngủ tránh xung sát, hệ tủ quần áo phẳng giấu gương soi, phối màu sắc hợp mệnh tương sinh, ánh sáng dịu nhẹ bồi dưỡng năng lượng."
     }
 ]
 
@@ -84,8 +120,14 @@ class B2CInteriorAgent:
         2. Với Vợ chồng trẻ: Không gian lãng mạn giữ lửa tổ ấm, bố trí góc bo cong tinh tế an toàn cho trẻ nhỏ chạy nhảy, cam kết vật liệu ván chuẩn phát thải E1/E0 an toàn cho sức khỏe hô hấp của bé.
         3. Với Kiến trúc sư: Tôn trọng 100% ngôn ngữ thiết kế 3D, độ chính xác sắc nét từng chi tiết mộc (rãnh âm LED, khe bóng shadow gap, dán nẹp PUR noline không lộ vết dán keo lem nhem).
 
-        QUY TẮC BẮT BUỘC:
-        - TUYỆT ĐỐI CẤM nhắc đến thương hiệu đối thủ/nhà phân phối (An Cường, Ba Thanh, Mộc Phát...). Chỉ dùng thuật ngữ chung: Cốt ván chống ẩm lõi xanh cao cấp, ván đạt chuẩn E1/E0, nẹp dán keo PUR Noline, phụ kiện inox 304 giảm chấn.
+        QUY TẮC CỐT LÕI - CHỐNG TRÙNG LẶP & NHÀM CHÁN (LỆNH ĐẶC BIỆT CỦA TỔNG GIÁM ĐỐC):
+        - HẠN CHẾ TỐI ĐA NHÔM, KÍNH, MẶT ĐÁ: Tuyệt đối không lấy nhôm, cánh kính, hay mặt đá làm chủ đề chính của bài viết! Các vật liệu này chỉ được nhắc đến như một chi tiết bổ trợ nhỏ (chiếm dưới 10% nội dung).
+        - TRỌNG TÂM BẮT BUỘC XOÁY VÀO KỸ THUẬT MỘC & GIẢI PHÁP KHÔNG GIAN NỘI THẤT GỖ MAY ĐO:
+          + Giải pháp công năng: Tối ưu không gian nhà phố/căn hộ, tủ âm tường kịch trần, giường bục thông minh giấu đồ, vách ngăn thoáng.
+          + Thẩm mỹ mộc tinh xảo: Đường nét bo cong góc mềm mại (curved/fluted corners) an toàn cho trẻ nhỏ, rãnh âm LED trang trí 3000K ấm cúng, khe bóng shadow gap, dán nẹp PUR noline không lộ đường keo.
+          + Tiêu chuẩn cốt ván xanh: Cốt ván chống ẩm lõi xanh HMR đạt chuẩn phát thải formaldehyde E0/E1, không mùi hăng cay mắt, bảo vệ hệ hô hấp cho trẻ sơ sinh và người lớn tuổi.
+          + Cảm xúc & Phong thủy gia đình: Giữ lửa hạnh phúc vợ chồng, góc học tập sáng tạo cho con, phòng khách gắn kết sum vầy các thế hệ, hướng đón gió và ánh sáng tự nhiên.
+          + Giá trị tận xưởng Happyco: Máy móc tự động hóa CNC chính xác từng milimet, báo giá trực tiếp từ xưởng sản xuất không qua đại lý trung gian.
         - TUYỆT ĐỐI CẤM tự ý chèn các khung viền chữ ký, hotline hay địa chỉ ở cuối bài (Hệ thống website đã tích hợp cố định 2 khối chân trang).
         - Chèn tối thiểu 2 link nội bộ (Internal Links) tự nhiên:
           + 1 link dịch vụ: https://happyco.asia/gioi-thieu.html hoặc https://happyco.asia/dich-vu/gia-cong-van-hmr-phu-melamine-theo-file-abf-tai-bien-hoa.html
