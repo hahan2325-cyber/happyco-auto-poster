@@ -11,11 +11,32 @@ import sys
 import time
 import base64
 from pathlib import Path
+import cv2
+import numpy as np
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
 BASE_DIR = Path(__file__).resolve().parent
 WM_PATH = BASE_DIR / "happyco_watermark_duo.png"
+
+def remove_flow_watermark(img_bgr):
+    """Xóa triệt để logo/ngôi sao mờ của Google Flow ở góc dưới bên phải bằng Inpainting"""
+    h, w = img_bgr.shape[:2]
+    x1, y1 = max(0, w - 220), max(0, h - 180)
+    x2, y2 = w - 5, h - 5
+    patch = img_bgr[y1:y2, x1:x2]
+    
+    gray_patch = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+    tophat = cv2.morphologyEx(gray_patch, cv2.MORPH_TOPHAT, kernel)
+    
+    _, mask = cv2.threshold(tophat, 14, 255, cv2.THRESH_BINARY)
+    dilated_mask = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)), iterations=2)
+    
+    inpainted = cv2.inpaint(patch, dilated_mask, 5, cv2.INPAINT_TELEA)
+    res = img_bgr.copy()
+    res[y1:y2, x1:x2] = inpainted
+    return res
 
 def stamp_top_left(img_pil, wm_pil):
     img_rgba = img_pil.convert("RGBA")
@@ -127,8 +148,16 @@ def generate_flow_batch_parallel(prompts, output_dir=None):
         with open(raw_path, "wb") as f:
             f.write(buf)
             
-        # Xử lý 16:9 và đóng dấu Top-Left
-        img = Image.open(raw_path).convert("RGB")
+        # 1. Xóa sạch logo ngôi sao mờ của Google Flow ở góc dưới phải
+        img_bgr = cv2.imread(str(raw_path))
+        if img_bgr is not None:
+            clean_bgr = remove_flow_watermark(img_bgr)
+            clean_rgb = cv2.cvtColor(clean_bgr, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(clean_rgb)
+        else:
+            img = Image.open(raw_path).convert("RGB")
+            
+        # 2. Xử lý 16:9 và đóng dấu Top-Left
         w, h = img.size
         target_h = int(w * 9 / 16)
         if h > target_h:
