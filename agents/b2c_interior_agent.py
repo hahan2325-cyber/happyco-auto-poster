@@ -1,164 +1,134 @@
 """
 Sub-Agent: Chuyên Gia Thiết Kế & Thi Công Nội Thất (B2C Interior Specialist)
 Chuyên trách chuyên mục BLOG NỘI THẤT (ID: 266)
-Phục vụ 3 nhóm đối tượng mục tiêu:
-1. CHỦ NHÀ: Quan tâm độ bền kết cấu, phong thủy vượng tài, chi phí trực tiếp tận xưởng, bảo hành dài hạn.
-2. VỢ CHỒNG TRẺ: Thẩm mỹ hiện đại, giữ lửa tổ ấm, an toàn tuyệt đối cho con nhỏ (nội thất bo cong mềm mại), ván E1/E0 không mùi cay mắt.
-3. KIẾN TRÚC SƯ: Hiện thực hóa bản vẽ 3D ra thực tế chuẩn xác, kỹ thuật mộc tinh xảo (bo cong, rãnh âm LED, khe bóng shadow gap, dán nẹp PUR noline).
+- Xoay tua liên tục 16 trục đề tài: Phong cách nội thất thế giới, Bài toán thi công thực tế, Sức khỏe & Không gian sống.
+- Hạn chế tối đa nhôm, kính, mặt đá (chỉ làm điểm xuyết phụ <10%).
+- Sinh tiêu đề mới hoàn toàn qua từng bài bằng bộ nhớ chống lặp & 6 kiểu tiêu đề xoay vòng.
+- Luôn đi kèm duy nhất 1 khối viền xanh nét đứt chuẩn ở cuối bài (đi liền Banner web).
 """
 
 import os
 import sys
 import json
-import random
 import re
 from typing import Dict, Any, Optional
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-B2C_CURATED_TOPICS = [
-    # NHÓM 1: CÁC PHONG CÁCH NỘI THẤT NỔI TIẾNG TRÊN THẾ GIỚI
+from core.topic_memory import (
+    load_history,
+    pick_least_used_topic,
+    pick_next_formula,
+    check_title_freshness,
+    ensure_green_box,
+    BANNED_TITLE_CLICHES,
+)
+
+B2C_TOPIC_ANGLES = [
+    # NHÓM 1: CÁC PHONG CÁCH NỘI THẤT ĐẸP TRÊN TOÀN THẾ GIỚI
     {
-        "keyword": "nội thất phong cách japandi gỗ sồi ấm cúng",
-        "title": "Nội Thất Phong Cách Japandi Tinh Tế: Nghệ Thuật Phối Vân Gỗ Tự Nhiên & Đường Bo Cong Mềm Mại Mang Lại Bình Yên",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_japandi_warm",
-        "target_audience": "Chủ nhà yêu thẩm mỹ & Kiến trúc sư",
-        "themes": "Sự kết hợp giữa nét mộc mạc Nhật Bản và tối giản Bắc Âu, kỹ thuật uốn cong phôi ván CNC, tone màu gỗ sồi ấm áp kết hợp vải nỉ dệt thô mộc."
+        "pool": "b2c_japandi",
+        "keyword": "nội thất phong cách japandi gỗ sồi",
+        "angle": "Giao thoa tối giản Nhật Bản và Bắc Âu (Japandi): phối vân gỗ sồi tự nhiên, chi tiết nan gỗ thanh thoát và khoảng thở tĩnh lặng cho nhà phố",
+        "audience": "Chủ nhà yêu sự tinh tế & Kiến trúc sư",
     },
     {
-        "keyword": "nội thất phong cách wabi sabi thô mộc tự nhiên",
-        "title": "Phong Cách Nội Thất Wabi-Sabi: Vẻ Đẹp Bình Yên Từ Vật Liệu Gỗ Mộc Mạc & Khoảng Không Tĩnh Lặng Cho Tâm Hồn",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
         "pool": "b2c_wabisabi",
-        "target_audience": "Gia chủ tìm kiếm sự thư thái & Cân bằng cuộc sống",
-        "themes": "Triết lý tôn trọng vẻ đẹp nguyên bản, bề mặt gỗ công nghiệp dập nổi vân gỗ sâu tự nhiên, gam màu đất trung tính, không gian ít đồ đạc để tâm trí thư thái."
+        "keyword": "phong cách wabi sabi mộc mạc tự nhiên",
+        "angle": "Triết lý Wabi-Sabi trong nội thất gỗ công nghiệp vân sần sâu tự nhiên, gam màu đất ấm áp giúp giải tỏa áp lực sau giờ làm",
+        "audience": "Người trẻ thành đạt tìm sự cân bằng",
     },
     {
-        "keyword": "nội thất scandinavian bắc âu tươi sáng",
-        "title": "Phong Cách Nội Thất Scandinavian Bắc Âu: Bí Quyết Đưa Ánh Sáng Tự Nhiên & Gỗ Sáng Màu Vào Nhà Phố Hiện Đại",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
         "pool": "b2c_scandinavian",
-        "target_audience": "Vợ chồng trẻ yêu phong cách sống hiện đại",
-        "themes": "Tối đa hóa cửa sổ lấy sáng, phối gỗ tone màu sáng (sồi trắng, tần bì), cây xanh trang trí, thảm len mộc và hệ tủ kệ treo thoáng chân."
+        "keyword": "nội thất scandinavian bắc âu sáng thoáng",
+        "angle": "Phong cách Scandinavian Bắc Âu: nghệ thuật đón sáng tự nhiên, phối gỗ sáng màu với hệ tủ treo chân thoáng cho căn hộ vừa và nhỏ",
+        "audience": "Vợ chồng trẻ mua căn hộ đầu tiên",
     },
     {
-        "keyword": "nội thất indochine đông dương đương đại",
-        "title": "Nội Thất Indochine Đương Đại: Nét Hoài Cổ Đông Dương Giao Thoa Nhịp Sống Hiện Đại Qua Chi Tiết Mộc Tinh Xảo",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
         "pool": "b2c_indochine",
-        "target_audience": "Gia chủ trung niên & Người yêu văn hóa Á Đông",
-        "themes": "Chi tiết mộc phay rãnh pano chỉ nhẹ nhàng, mắt lưới mây đan tự nhiên trang trí cánh tủ, tone màu gỗ óc chó trầm ấm kết hợp gạch bông hoài niệm."
+        "keyword": "nội thất indochine đông dương gỗ trầm mây đan",
+        "angle": "Hơi thở Indochine Đông Dương đương đại qua cánh tủ phay chỉ pano gỗ óc chó kết hợp lưới mây tự nhiên đan thủ công",
+        "audience": "Gia chủ trung niên & người yêu nét Á Đông",
     },
     {
-        "keyword": "nội thất phong cách organic modern đường cong hữu cơ",
-        "title": "Phong Cách Organic Modern: Xu Hướng Nội Thất Đường Cong Hữu Cơ Mềm Mại Mang Thiên Nhiên Vào Gian Phòng",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
         "pool": "b2c_organic_modern",
-        "target_audience": "Gia chủ chuộng thẩm mỹ thời thượng & Kiến trúc sư",
-        "themes": "Đường bo cong uốn lượn mềm mại trên các hệ tủ và vách ốp, triệt tiêu góc nhọn sắc bén, màu sắc tự nhiên ấm áp, cảm giác an toàn và dễ chịu."
+        "keyword": "nội thất organic modern bo cong mềm mại",
+        "angle": "Xu hướng Organic Modern: ứng dụng kỹ thuật uốn cong phôi gỗ CNC tạo đường bo tròn mềm mại, triệt tiêu góc nhọn trong nhà có trẻ nhỏ",
+        "audience": "Gia đình có con nhỏ & Kiến trúc sư",
+    },
+    {
+        "pool": "b2c_taiwanese",
+        "keyword": "phong cách nội thất đài loan gỗ ấm tối giản",
+        "angle": "Phong cách Đài Loan (Taiwanese Modern): phối gỗ màu óc chó/xám khói cùng rãnh âm đèn LED 3000K tạo chiều sâu cho phòng khách hiện đại",
+        "audience": "Chủ nhà phố & căn hộ cao cấp",
     },
 
-    # NHÓM 2: GIẢI BÀI TOÁN THI CÔNG NỘI THẤT THỰC TẾ
+    # NHÓM 2: BÀI TOÁN THI CÔNG NỘI THẤT THỰC TẾ
     {
-        "keyword": "giải pháp thi công tủ âm tường che dầm cột nhà phố",
-        "title": "Giải Quyết Bài Toán Nhà Phố Bị Lộ Cột & Dầm Bê Tông: Nghệ Thuật Đóng Tủ Gỗ May Đo Che Khuyết Điểm Xây Dựng",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_solution_beam_column",
-        "target_audience": "Chủ nhà đang xây/sửa nhà phố",
-        "themes": "Kỹ thuật may đo nội thất ôm khít cột nhà, biến góc chết thành hộc tủ trang trí có đèn LED, ốp vách gỗ phẳng che hoàn toàn dầm ngang mất thẩm mỹ."
+        "pool": "b2c_fix_columns",
+        "keyword": "cách đóng tủ âm tường che cột dầm nhà ống",
+        "angle": "Bài toán nhà phố lộ cột bê tông và dầm ngang thô kệch: kỹ thuật đóng tủ gỗ may đo ôm khít tường và biến góc chết thành hộc kệ trưng bày",
+        "audience": "Chủ nhà đang hoàn thiện phần thô nhà ống",
     },
     {
-        "keyword": "chống ẩm mốc nội thất tầng trệt nhà phố",
-        "title": "Bài Toán Chống Ẩm Mốc Cho Nội Thất Tầng Trệt Nhà Phố: Kỹ Thuật Đôn Chân & Keo Dán Cạnh PUR Ngăn Nước Triệt Để",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_solution_moisture",
-        "target_audience": "Chủ nhà vùng nồm ẩm, gần sông ngòi hoặc tầng trệt",
-        "themes": "Kỹ thuật đôn chân nhựa kháng ẩm ngầm cách sàn, cốt gỗ chống ẩm lõi xanh HMR, dán cạnh PUR noline khóa ẩm 100%, bảo vệ chân tủ không bao giờ mốc hỏng."
+        "pool": "b2c_fix_moisture",
+        "keyword": "chống ẩm mốc chân tủ tầng trệt",
+        "angle": "Bài toán ẩm nồm tầng trệt và tường giáp nhà vệ sinh: kỹ thuật đôn chân nhựa kháng ẩm ngầm, cốt ván xanh HMR và nẹp PUR khóa ẩm mép gỗ",
+        "audience": "Chủ nhà khu vực ẩm thấp / tầng trệt",
     },
     {
-        "keyword": "nghiệm thu thực tế chuẩn bản vẽ 3d nội thất",
-        "title": "Từ Bản Vẽ 3D Đến Thực Tế Thi Công: Quy Trình Đo Đạc Laser & Cắt CNC Chuẩn Xác Từng Milimet Tại Xưởng Happyco",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_solution_3d_to_reality",
-        "target_audience": "Khách hàng lo sợ thi công thực tế lệch bản vẽ 3D",
-        "themes": "Quy trình đo đạc hiện trạng bằng máy cân mực laser, bóc tách bản vẽ sản xuất bằng phần mềm chuyên dụng, cắt phôi CNC chính xác dung sai dưới 0.2mm."
+        "pool": "b2c_fix_3d_reality",
+        "keyword": "thi công nội thất giống bản vẽ 3d đo laser",
+        "angle": "Vì sao nhiều nhà nhận bàn giao nội thất thực tế khác xa bản vẽ 3D? Quy trình bắn tia laser hiện trạng và bóc file CNC dung sai 0.2mm",
+        "audience": "Gia chủ chuẩn bị ký hợp đồng thi công",
     },
     {
-        "keyword": "kinh nghiệm dự toán chi phí nội thất không phát sinh",
-        "title": "Bí Quyết Dự Toán Chi Phí Hoàn Thiện Nội Thất Trọn Gói: Cách Phân Bổ Ngân Sách Thông Minh & Tránh Phát Sinh",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_solution_budget",
-        "target_audience": "Gia chủ chuẩn bị làm nội thất nhà mới",
-        "themes": "Bóc tách từng hạng mục chi tiết theo mét vuông/mét dài thực tế, kinh nghiệm chọn cốt ván phù hợp từng khu vực, lợi ích khi làm việc trực tiếp tại xưởng sản xuất."
+        "pool": "b2c_fix_budget",
+        "keyword": "kinh nghiệm dự toán chi phí nội thất tránh phát sinh",
+        "angle": "Bài toán phân bổ ngân sách hoàn thiện nội thất trọn gói: khu vực nào cần dùng ván chịu ẩm cao cấp, chỗ nào tối ưu để tiết kiệm 20% chi phí",
+        "audience": "Vợ chồng trẻ cân đối tài chính làm nhà",
+    },
+    {
+        "pool": "b2c_fix_acoustic",
+        "keyword": "vách ốp gỗ tiêu âm phòng làm việc phòng ngủ",
+        "angle": "Giải pháp giảm tiếng ồn đường phố cho nhà mặt tiền bằng vách ốp lam gỗ tiêu âm kết hợp nỉ acoustic trong phòng ngủ và phòng làm việc",
+        "audience": "Nhà mặt tiền đường lớn / người làm việc từ xa",
     },
 
     # NHÓM 3: KHÔNG GIAN SỐNG, CÔNG NĂNG & SỨC KHỎE GIA ĐÌNH
     {
-        "keyword": "thiết kế nội thất nhà phố tối ưu diện tích gỗ công nghiệp",
-        "title": "Giải Pháp Thiết Kế Nội Thất Gỗ May Đo Tối Ưu Diện Tích: Biến Nhà Phố Nhỏ Thành Không Gian Sống Rộng Rãi",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_smart_living",
-        "target_audience": "Chủ nhà & Vợ chồng trẻ",
-        "themes": "Hệ tủ âm tường kịch trần giấu đồ thông minh, giường bục đa năng tích hợp ngăn kéo, vách ngăn nan gỗ thoáng khí, cốt ván chống ẩm lõi xanh E1/E0."
+        "pool": "b2c_health_e0",
+        "keyword": "cốt ván e0 e1 không mùi an toàn trẻ nhỏ",
+        "angle": "Mùi hăng cay mắt từ nội thất mới đóng đến từ đâu? Cách nhận biết ván công nghiệp đạt chuẩn phát thải E0/E1 bảo vệ hô hấp cho bé",
+        "audience": "Gia đình có trẻ sơ sinh & mẹ bầu",
     },
     {
-        "keyword": "tiêu chuẩn ván e0 e1 an toàn sức khỏe trẻ nhỏ",
-        "title": "Tiêu Chuẩn Ván Xanh E0/E1 Trong Nội Thất Nhà Ở: Bảo Vệ Hệ Hô Hấp Trẻ Nhỏ & Lựa Chọn Cốt Ván Không Mùi Độc Hại",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_health_eco",
-        "target_audience": "Gia đình có con nhỏ & Phụ nữ mang thai",
-        "themes": "Tác hại của formaldehyde trong ván trôi nổi, chứng nhận phát thải E0/E1, công nghệ nẹp cạnh PUR noline khóa kín cốt ván, bo tròn góc cạnh chống va đập."
+        "pool": "b2c_tatami_small",
+        "keyword": "giường bục tatami tủ âm tường phòng nhỏ",
+        "angle": "Biến phòng ngủ nhỏ 9m2 thành không gian đa năng với giường bục Tatami ngăn kéo ngầm kết hợp tủ áo và bàn làm việc liền khối",
+        "audience": "Căn hộ chung cư 1-2 phòng ngủ & nhà phố nhỏ",
     },
     {
-        "keyword": "thiết kế phòng khách sum vầy đa thế hệ",
-        "title": "Thiết Kế Phòng Khách Hiện Đại Gắn Kết Đa Thế Hệ: Nghệ Thuật Sắp Đặt Ánh Sáng & Hệ Tủ Kệ Treo Tinh Gọn",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_family_living",
-        "target_audience": "Gia đình đa thế hệ & Chủ nhà",
-        "themes": "Bố cục ghế sofa quây quần, kệ tivi treo tường giấu dây điện thông minh, hệ rãnh âm LED 3000K ấm cúng, bàn trà tròn bo cạnh an toàn cho ông bà và cháu nhỏ."
+        "pool": "b2c_kids_ergonomic",
+        "keyword": "phòng ngủ trẻ em bàn học công thái học",
+        "angle": "Thiết kế phòng ngủ giúp con tự lập: bố trí giường tầng gỗ chắc chắn bo tròn cạnh, thang hộp chứa đồ chơi và bàn học lấy sáng chuẩn chống gù",
+        "audience": "Cha mẹ có con từ 4-12 tuổi",
     },
     {
-        "keyword": "thiết kế phòng ngủ trẻ em thông minh sáng tạo",
-        "title": "Thiết Kế Phòng Ngủ Trẻ Em Sáng Tạo: Bố Trí Bàn Học Công Thái Học & Giường Tầng Gỗ Công Nghiệp Chắc Chắn",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_kids_room",
-        "target_audience": "Cha mẹ trẻ có con trong độ tuổi đi học",
-        "themes": "Góc học tập lấy sáng tự nhiên chống cận thị, giường tầng liên hoàn tủ áo bo tròn góc cạnh, thang bước hộp lưu trữ đồ chơi rèn tính tự lập cho bé."
-    },
-    {
-        "keyword": "phong thủy phòng ngủ master vợ chồng hòa thuận",
-        "title": "Phong Thủy Nội Thất Phòng Ngủ Master: Bố Trí Hướng Giường & Luồng Khí Sinh Tài Rước Vượng Khí Cho Gia Chủ",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
-        "pool": "b2c_fengshui_master",
-        "target_audience": "Chủ nhà & Vợ chồng trung niên",
-        "themes": "Nguyên tắc đặt giường ngủ tránh xung sát, hệ tủ quần áo phẳng giấu gương soi, phối màu sắc hợp mệnh tương sinh, ánh sáng dịu nhẹ bồi dưỡng năng lượng."
-    },
-    {
-        "keyword": "thiết kế góc làm việc tại nhà home office sáng tạo",
-        "title": "Thiết Kế Góc Làm Việc Tại Nhà (Home Office) Chuẩn Công Thái Học: Tối Ưu Ánh Sáng & Hệ Giá Sách Kệ Gỗ Truyền Cảm Hứng",
-        "category": "BLOG NỘI THẤT",
-        "cat_id": "266",
         "pool": "b2c_home_office",
-        "target_audience": "Người làm việc từ xa, Chuyên gia & Doanh nhân",
-        "themes": "Bàn làm việc bo cong chuẩn công thái học, hệ giá sách treo âm tường chịu lực, rãnh giấu dây cáp máy tính thông minh, nguồn sáng tự nhiên giảm mỏi mắt."
-    }
+        "keyword": "thiết kế góc làm việc tại nhà home office",
+        "angle": "Thiết kế góc Home Office ngay trong phòng ngủ hoặc gầm cầu thang: bàn gỗ giấu dây điện âm, hệ kệ sách treo chịu lực gọn gàng",
+        "audience": "Người làm việc từ xa / freelancer / quản lý",
+    },
+    {
+        "pool": "b2c_multigen_living",
+        "keyword": "phòng khách gỗ ấm gắn kết đa thế hệ",
+        "angle": "Thiết kế phòng khách gắn kết 3 thế hệ: lối đi rộng cho ông bà, bàn trà bo tròn an toàn cho cháu nhỏ và hệ kệ tivi giấu dây gọn gàng",
+        "audience": "Gia đình 3 thế hệ sống chung",
+    },
 ]
+
 
 class B2CInteriorAgent:
     def __init__(self):
@@ -172,184 +142,113 @@ class B2CInteriorAgent:
         from google import genai
         client = genai.Client(api_key=api_key)
 
-        chosen = random.choice(B2C_CURATED_TOPICS)
-        if not topic_title:
-            topic_title = chosen["title"]
-            keyword = chosen["keyword"]
-            pool = chosen["pool"]
-            audience = chosen["target_audience"]
-            themes = chosen["themes"]
-        else:
-            keyword = topic_title.lower()
-            pool = "b2c_bedroom" if "phòng ngủ" in keyword or "giường" in keyword or "tủ áo" in keyword else "b2c_living"
-            audience = "Chủ nhà, Vợ chồng trẻ, Kiến trúc sư"
-            themes = "Thiết kế thi công nội thất cao cấp xưởng Happyco."
+        chosen = pick_least_used_topic(B2C_TOPIC_ANGLES, "BLOG NỘI THẤT")
+        formula = pick_next_formula("BLOG NỘI THẤT")
+        history = load_history()
+        recent_titles_str = "\n".join(f"- {h['title']}" for h in history[:10])
 
-        prompt = f"""
-        Bạn là Chuyên gia Biên tập Nội dung Kiến trúc & Nội thất của CÔNG TY CỔ PHẦN HAPPYCO (Biên Hòa, Đồng Nai).
-        Hãy viết 1 bài viết chuẩn SEO đẳng cấp, sâu sắc xuất bản trên website happyco.asia:
+        angle_desc = topic_title if topic_title else chosen["angle"]
+        keyword = chosen["keyword"]
+        pool = chosen["pool"]
+        audience = chosen["audience"]
 
-        Tiêu đề: {topic_title}
-        Chuyên mục: BLOG NỘI THẤT (ID: 266)
-        Từ khóa chính: {keyword}
-        Đối tượng độc giả chính: {audience}
-        Chủ đề cốt lõi: {themes}
+        extra_feedback = ""
+        final_data = None
 
-        QUY CHUẨN VĂN PHONG WEB CAO CẤP (ĐÂY LÀ BÀI VIẾT WEBSITE, TUYỆT ĐỐI KHÔNG PHẢI BÀI ĐĂNG FACEBOOK):
-        - TUYỆT ĐỐI CẤM chào hỏi kiểu mạng xã hội: Không viết 'Chào anh em', 'Xin chào các bạn', 'Chào quý độc giả', 'Anh em thân mến'...
-        - TUYỆT ĐỐI CẤM xưng hô cá nhân hay tự giới thiệu chức danh: Không viết 'Tôi là...', 'Với tư cách là Kiến trúc sư trưởng kiêm Giám đốc...', 'Chúng tôi là đội ngũ kỹ sư...'. Văn phong phải mang tính chuyên gia khách quan, sang trọng, tập trung hoàn toàn vào giải pháp không gian, công năng, phong thủy và trải nghiệm sống của gia chủ.
-        - MÔ TẢ BÀI VIẾT (description): TUYỆT ĐỐI CẤM bắt đầu bằng 'Bài viết...', 'Bài viết này...', 'Bài viết chia sẻ...'. Mô tả phải đi thẳng vào tóm lược giải pháp thiết kế, công năng và giá trị thẩm mỹ cho căn hộ/nhà phố (140-160 ký tự chuẩn SEO).
-        - Đoạn mở đầu (Sapo): Đi thẳng vào thực trạng xu hướng nội thất hiện đại và giải pháp kiến trúc đột phá, không rào đón dài dòng.
+        for attempt in range(2):
+            title_instruction = (
+                f'Sử dụng đúng tiêu đề được chỉ định: "{topic_title}"'
+                if topic_title else
+                f"""TỰ SÁNG TÁC 1 TIÊU ĐỀ HOÀN TOÀN MỚI THEO KIỂU: [{formula['name']}]
+                - Quy tắc kiểu này: {formula['rule']}
+                - Ví dụ tham khảo phong cách (KHÔNG copy): "{formula['b2c_example']}"
+                - CẤM TUYỆT ĐỐI lặp cấu trúc "Thiết Kế X: Y Tại Happyco" hay lặp các từ sáo rỗng: {', '.join(BANNED_TITLE_CLICHES)}!
+                {extra_feedback}"""
+            )
 
-        TIÊU CHUẨN NỘI DUNG 3 NHÓM ĐỐI TƯỢNG:
-        1. Với Chủ nhà: Phân tích sâu về độ bền cốt ván chống ẩm, phong thủy vượng khí tài lộc, lợi ích tiết kiệm 20-30% chi phí khi làm việc trực tiếp tại xưởng sản xuất quy mô lớn Happyco không qua trung gian.
-        2. Với Vợ chồng trẻ: Không gian lãng mạn giữ lửa tổ ấm, bố trí góc bo cong tinh tế an toàn cho trẻ nhỏ chạy nhảy, cam kết vật liệu ván chuẩn phát thải E1/E0 an toàn cho sức khỏe hô hấp của bé.
-        3. Với Kiến trúc sư: Tôn trọng 100% ngôn ngữ thiết kế 3D, độ chính xác sắc nét từng chi tiết mộc (rãnh âm LED, khe bóng shadow gap, dán nẹp PUR noline không lộ vết dán keo lem nhem).
+            prompt = f"""
+            Bạn là Chuyên gia Kiến trúc & Thi công Nội thất gỗ của CÔNG TY CỔ PHẦN HAPPYCO (Biên Hòa, Đồng Nai).
+            Hãy viết 1 bài viết chuyên sâu, giàu góc nhìn thực tế để đăng lên website happyco.asia:
 
-        QUY TẮC CỐT LÕI - CHỐNG TRÙNG LẶP & NHÀM CHÁN (LỆNH ĐẶC BIỆT CỦA TỔNG GIÁM ĐỐC):
-        - HẠN CHẾ TỐI ĐA NHÔM, KÍNH, MẶT ĐÁ: Tuyệt đối không lấy nhôm, cánh kính, hay mặt đá làm chủ đề chính của bài viết! Các vật liệu này chỉ được nhắc đến như một chi tiết bổ trợ nhỏ (chiếm dưới 10% nội dung).
-        - TRỌNG TÂM BẮT BUỘC XOÁY VÀO KỸ THUẬT MỘC & GIẢI PHÁP KHÔNG GIAN NỘI THẤT GỖ MAY ĐO:
-          + Giải pháp công năng: Tối ưu không gian nhà phố/căn hộ, tủ âm tường kịch trần, giường bục thông minh giấu đồ, vách ngăn thoáng.
-          + Thẩm mỹ mộc tinh xảo: Đường nét bo cong góc mềm mại (curved/fluted corners) an toàn cho trẻ nhỏ, rãnh âm LED trang trí 3000K ấm cúng, khe bóng shadow gap, dán nẹp PUR noline không lộ đường keo.
-          + Tiêu chuẩn cốt ván xanh: Cốt ván chống ẩm lõi xanh HMR đạt chuẩn phát thải formaldehyde E0/E1, không mùi hăng cay mắt, bảo vệ hệ hô hấp cho trẻ sơ sinh và người lớn tuổi.
-          + Cảm xúc & Phong thủy gia đình: Giữ lửa hạnh phúc vợ chồng, góc học tập sáng tạo cho con, phòng khách gắn kết sum vầy các thế hệ, hướng đón gió và ánh sáng tự nhiên.
-          + Giá trị tận xưởng Happyco: Máy móc tự động hóa CNC chính xác từng milimet, báo giá trực tiếp từ xưởng sản xuất không qua đại lý trung gian.
-        - TUYỆT ĐỐI CẤM tự ý chèn các khung viền chữ ký, hotline hay địa chỉ ở cuối bài (Hệ thống website đã tích hợp cố định 2 khối chân trang).
-        - Chèn tối thiểu 2 link nội bộ (Internal Links) tự nhiên:
-          + 1 link dịch vụ: https://happyco.asia/gioi-thieu.html hoặc https://happyco.asia/dich-vu/gia-cong-van-hmr-phu-melamine-theo-file-abf-tai-bien-hoa.html
-          + 1 link liên quan: https://happyco.asia/blog.html
+            CHUYÊN MỤC: BLOG NỘI THẤT (cat_id: 266)
+            TRỤC CHỦ ĐỀ BẮT BUỘC: {angle_desc}
+            TỪ KHÓA TRỌNG TÂM: {keyword}
+            ĐỐI TƯỢNG ĐỘC GIẢ: {audience}
 
-        CẤU TRÚC 4 MỤC <h2> BẮT BUỘC:
-        Mỗi mục <h2> phải có đoạn văn chuyên sâu và 1 khối chèn ảnh khổ lớn, căn giữa:
-        <p style="text-align: center; margin: 25px 0;">
-          <img src="IMAGE_PLACEHOLDER_1" alt="[Mô tả ảnh nội thất thực tế chuẩn SEO]" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" />
-          <br />
-          <em style="color: #666; font-size: 14px; margin-top: 8px; display: inline-block;">[Chú thích không gian sống tự nhiên, CẤM chữ 'Hình 1, Hình 2']</em>
-        </p>
+            DANH SÁCH CÁC TIÊU ĐỀ ĐÃ ĐĂNG GẦN ĐÂY (TUYỆT ĐỐI KHÔNG TRÙNG Ý TƯỞNG HAY CÁCH ĐẶT TÊN):
+            {recent_titles_str}
 
-        TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ:
-        {{
-            "title": "{topic_title}",
-            "slug": "...",
-            "description": "Tóm tắt súc tích giải pháp thiết kế nội thất chuẩn SEO (CẤM chữ 'Bài viết...')",
-            "keywords": "{keyword}, nội thất happyco, thiết kế thi công nội thất biên hòa đồng nai",
-            "category": "BLOG NỘI THẤT",
-            "cat_id": 266,
-            "pool": "{pool}",
-            "content_html": "<p>Đoạn sapo đi thẳng vào xu hướng...</p> ... <h2>1. ...</h2> ... <h2>2. ...</h2> ... <h2>3. ...</h2> ... <h2>4. ...</h2> ..."
-        }}
-        """
+            YÊU CẦU ĐẶT TIÊU ĐỀ:
+            {title_instruction}
 
-        response = None
-        for model_name in ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"]:
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                )
-                if response and response.text:
-                    break
-            except Exception as e:
-                print(f"Warning: Model {model_name} failed: {e}. Trying next model...")
-                continue
+            LỆNH ĐẶC BIỆT VỀ NỘI DUNG (PHẢI TUÂN THỦ 100%):
+            1. HẠN CHẾ TỐI ĐA NHÔM, KÍNH, MẶT ĐÁ: Những vật liệu này chỉ nhắc thoáng qua như điểm xuyết nhỏ (dưới 10% bài), KHÔNG lấy làm chủ đề chính!
+            2. XOÁY SÂU VÀO NGHỀ MỘC & KHÔNG GIAN SỐNG: Giải pháp gỗ may đo, kết cấu mộc tinh xảo (bo cong CNC an toàn, rãnh âm LED 3000K, khe shadow gap, nẹp PUR noline không vết keo), cốt ván xanh HMR chuẩn E0/E1 bảo vệ sức khỏe, phong thủy/luồng sáng, câu chuyện thực tế khi thi công tại công trình.
+            3. VĂN PHONG WEBSITE CHUYÊN NGHIỆP:
+               - CẤM chào hỏi mạng xã hội ('Chào các bạn', 'Chào anh em'...), CẤM xưng tôi ('Tôi là...').
+               - Mô tả (description): 140-160 ký tự tóm tắt thẳng vấn đề/giải pháp, CẤM mở đầu bằng 'Bài viết...'.
+               - CẤM nhắc thương hiệu đối thủ (An Cường, Ba Thanh, Mộc Phát...).
+               - CẤM tự ý viết thêm khối địa chỉ hay hotline ở cuối bài (code hậu kiểm sẽ tự ghép duy nhất 1 khối viền xanh chuẩn ở cuối).
+            4. CHÈN 2-3 LINK NỘI BỘ TỰ NHIÊN:
+               - <a href="https://happyco.asia/gioi-thieu.html">Happyco</a>
+               - <a href="https://happyco.asia/blog.html">kinh nghiệm thiết kế nội thất</a>
+            5. CẤU TRÚC 4 MỤC <h2> CHUYÊN SÂU, mỗi mục có 1 ảnh:
+               <p style="text-align: center; margin: 25px 0;">
+                 <img src="IMAGE_PLACEHOLDER_1" alt="[Mô tả ảnh nội thất thực tế]" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px;" />
+                 <br />
+                 <em style="color: #666; font-size: 14px;">[Chú thích tự nhiên, CẤM ghi Hình 1, Hình 2]</em>
+               </p>
 
-        if not response or not response.text:
-            raise RuntimeError("Failed to generate content with available Gemini models!")
+            TRẢ VỀ DUY NHẤT 1 JSON HỢP LỆ (KHÔNG MARKDOWN DƯ THỪA):
+            {{
+                "title": "...",
+                "slug": "...",
+                "description": "...",
+                "keywords": "{keyword}, nội thất gỗ may đo, xưởng mộc biên hòa đồng nai",
+                "category": "BLOG NỘI THẤT",
+                "cat_id": 266,
+                "pool": "{pool}",
+                "formula_id": "{formula['id']}",
+                "content_html": "<p>...</p><h2>1. ...</h2>...<h2>2. ...</h2>...<h2>3. ...</h2>...<h2>4. ...</h2>..."
+            }}
+            """
 
-        text = response.text.strip()
-        if text.startswith("```json"): text = text[7:]
-        if text.startswith("```"): text = text[3:]
-        if text.endswith("```"): text = text[:-3]
-        data = json.loads(text.strip())
-        data["pool"] = pool
-        data["cat_id"] = 266
-        data["category"] = "BLOG NỘI THẤT"
+            response = None
+            for model_name in ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"]:
+                try:
+                    response = client.models.generate_content(model=model_name, contents=prompt)
+                    if response and response.text:
+                        break
+                except Exception as e:
+                    print(f"Warning: Model {model_name} failed: {e}")
 
-        # Chuẩn hóa văn phong web: Xóa sạch chào hỏi FB hoặc tự xưng danh cá nhân
-        desc = data.get("description", "").strip()
-        desc = re.sub(r'^(?:Bài viết|Bài viết này|Bài viết chia sẻ|Bài viết nhằm)\s*(?:này\s*)?(?:chia sẻ|giới thiệu|phân tích|cung cấp)?\s*[:,-]?\s*', '', desc, flags=re.IGNORECASE)
-        data["description"] = desc.strip()
+            if not response or not response.text:
+                raise RuntimeError("Failed to generate B2C content!")
 
-        html = data.get("content_html", "")
-        html = re.sub(r'(?:Chào anh em|Xin chào anh em|Chào các bạn|Xin chào các bạn|Anh em thân mến)[!,\.]?\s*', '', html, flags=re.IGNORECASE)
-        html = re.sub(r'Với tư cách là[^,\.\n]+,\s*(?:tôi\s*)?', '', html, flags=re.IGNORECASE)
-        html = re.sub(r'Tôi là[^,\.\n]+(?:kiêm|của)[^,\.\n]+,\s*', '', html, flags=re.IGNORECASE)
-        html = re.sub(r'Chúng tôi là đội ngũ kỹ sư[^,\.\n]+,\s*', '', html, flags=re.IGNORECASE)
+            raw = response.text.strip()
+            if raw.startswith("```json"): raw = raw[7:]
+            elif raw.startswith("```"): raw = raw[3:]
+            if raw.endswith("```"): raw = raw[:-3]
+            data = json.loads(raw.strip())
 
-        # Remove any accidental footer/address blocks
-        html = re.sub(r'<div[^>]*>(?:(?!<\/div>).)*(?:094[67]|Chúng Tôi Nhận Thiết Kế|Khu vực phục vụ|Địa chỉ nhà xưởng).*?<\/div>', '', html, flags=re.DOTALL | re.IGNORECASE)
-        html = re.sub(r'<p[^>]*>.*?(?:094[67]|Hotline tư vấn|Địa chỉ công ty).*?</p>', '', html, flags=re.DOTALL | re.IGNORECASE)
+            # Clean web tone
+            desc = re.sub(r'^(?:Bài viết|Bài viết này|Bài viết chia sẻ)\s*[:,-]?\s*', '', data.get("description", ""), flags=re.I).strip()
+            data["description"] = desc
+            data["category"] = "BLOG NỘI THẤT"
+            data["cat_id"] = "266"
+            data["pool"] = pool
+            data["formula_id"] = formula["id"]
+            data["content_html"] = ensure_green_box(data.get("content_html", ""))
 
-        # Đảm bảo có tối thiểu 2 link nội bộ
-        if "gioi-thieu" not in html and "blog" not in html:
-            html += """
-<div style="background: #f8fafc; border-left: 4px solid #008848; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; font-size: 15px; color: #334155; line-height: 1.6;">
-  🏡 <em>Tham khảo:</em> Quý gia chủ có thể tìm hiểu thêm về năng lực <a href="https://happyco.asia/gioi-thieu.html" style="color: #008848; font-weight: bold; text-decoration: underline;">sản xuất trực tiếp tại xưởng Happyco</a> hoặc chuyên mục <a href="https://happyco.asia/blog.html" style="color: #008848; font-weight: bold; text-decoration: underline;">cẩm nang thiết kế nội thất</a> để lựa chọn phương án tối ưu.
-</div>"""
+            if topic_title:
+                final_data = data
+                break
 
-        # BẮT BUỘC: CÀI ĐẶT CHẾT Ô THÔNG TIN HỆ THỐNG CỐ ĐỊNH Ở CUỐI BÀI VIẾT
-        FIXED_FOOTER = """
-<div style="border: 2px dashed #008848; background: #f6fff9; border-radius: 8px; padding: 18px 22px; margin: 28px 0;">
-  <p style="color: #008848; font-weight: bold; margin: 0 0 8px 0; font-size: 16px;">Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc Tại Các Khu Vực Sau:</p>
-  <p style="margin: 6px 0; color: #333; line-height: 1.6;">- Miền Nam: Thành phố Hồ Chí Minh, Đồng Nai, Tây Ninh, Thành phố Cần Thơ, Vĩnh Long, Đồng Tháp, Cà Mau, An Giang.</p>
-  <p style="margin: 6px 0; color: #333; line-height: 1.6;">📍 <strong>Địa chỉ công ty:</strong> 526/2, Khu phố 8A, Phường Long Bình, thành phố Đồng Nai.</p>
-  <p style="margin: 6px 0; color: #d32f2f; font-weight: bold; font-size: 16px;">📞 Liên hệ: 0946 272 286 (Đức Anh)</p>
-</div>
-"""
-        if "Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc Tại Các Khu Vực Sau" not in html:
-            html += "\n" + FIXED_FOOTER
+            ok, reason = check_title_freshness(data["title"], "BLOG NỘI THẤT")
+            if ok:
+                final_data = data
+                break
+            extra_feedback = f"\n⚠️ LẦN TRƯỚC TIÊU ĐỀ '{data['title']}' BỊ TỪ CHỐI VÌ: {reason}. BẮT BUỘC ĐỔI CÁCH DIỄN ĐẠT KHÁC HOÀN TOÀN!"
+            final_data = data
 
-        data["content_html"] = html.strip()
-        return data
-
-    def plan_outline_and_prompts(self, topic_title: Optional[str] = None) -> Dict[str, Any]:
-        """Tạo dàn ý nhanh & 5 prompts ảnh chất lượng 2K để bơm sang Flow ngay lập tức"""
-        api_key = os.getenv("GEMINI_API_KEY")
-        from google import genai
-        client = genai.Client(api_key=api_key)
-
-        chosen = random.choice(B2C_CURATED_TOPICS)
-        title = topic_title if topic_title else chosen["title"]
-        prompt = f"""
-        Lên dàn bài H2 và 5 prompt ảnh Google Flow (tiếng Anh) cho bài viết nội thất:
-        Tiêu đề: {title}
-        Chuyên mục: BLOG NỘI THẤT (ID: 266)
-
-        YÊU CẦU:
-        - 4 tiêu đề <h2> thiết kế nội thất đẳng cấp.
-        - 5 câu Prompt tiếng Anh chi tiết cho Imagen/Flow (1 ảnh thumbnail tổng quan, 4 ảnh chi tiết ứng với từng H2). Phong cách kiến trúc hiện đại, chụp thực tế documentary, ánh sáng ấm 3000K, tỉ lệ 16:9, không người, không hoa văn kỳ quái.
-
-        Trả về JSON duy nhất:
-        {{
-            "title": "{title}",
-            "slug": "...",
-            "h2_list": ["h2 1", "h2 2", "h2 3", "h2 4"],
-            "prompts": [
-                "prompt thumb...",
-                "prompt h2_1...",
-                "prompt h2_2...",
-                "prompt h2_3...",
-                "prompt h2_4..."
-            ]
-        }}
-        """
-        resp = None
-        for m in ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite"]:
-            try:
-                resp = client.models.generate_content(model=m, contents=prompt)
-                if resp and resp.text: break
-            except Exception:
-                continue
-
-        text = resp.text.strip()
-        if text.startswith("```json"): text = text[7:]
-        if text.startswith("```"): text = text[3:]
-        if text.endswith("```"): text = text[:-3]
-        plan = json.loads(text.strip())
-        plan["category"] = "BLOG NỘI THẤT"
-        plan["cat_id"] = 266
-        return plan
-
-    def write_full_article_from_plan(self, plan: Dict[str, Any]) -> Dict[str, Any]:
-        """Viết toàn văn bài viết chi tiết chuẩn SEO từ dàn bài đã có trong lúc Flow vẽ ảnh"""
-        return self.produce_article(topic_title=plan["title"])
+        return final_data

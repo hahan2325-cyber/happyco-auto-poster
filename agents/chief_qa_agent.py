@@ -1,11 +1,13 @@
 """
 Chief QA Agent - Tổng Biên Tập Kiểm Duyệt Chất Lượng Xuất Bản Happyco
-Kiểm duyệt nghiêm ngặt 6 tiêu chuẩn cốt lõi trước khi xuất bản
+Kiểm duyệt nghiêm ngặt tiêu chuẩn SEO, chống trùng lặp tiêu đề, cấm chèn chân trang trùng với web,
+và đảm bảo văn phong chuyên nghiệp trước khi xuất bản.
 """
 
 import re
 import hashlib
 from typing import Dict, Any, List
+from core.topic_memory import check_title_freshness
 
 BANNED_BRANDS = ["an cường", "an cuong", "ba thanh", "mộc phát", "moc phat", "panel plus"]
 
@@ -22,7 +24,9 @@ class ChiefQAAgent:
             "errors": []
         }
 
-        full_text = f"{article.get('title', '')} {article.get('description', '')} {article.get('content_html', '')}".lower()
+        title = article.get("title", "")
+        content_html = article.get("content_html", "")
+        full_text = f"{title} {article.get('description', '')} {content_html}".lower()
 
         # 1. Kiểm tra thương hiệu cấm (100% chỉ tôn vinh thương hiệu Happyco)
         found_banned = [b for b in BANNED_BRANDS if b in full_text]
@@ -33,38 +37,55 @@ class ChiefQAAgent:
         else:
             report["checks"]["no_banned_brands"] = "PASS"
 
-        # 2. Kiểm tra ô thông tin hệ thống cố định (BẮT BUỘC PHẢI CÓ 526/2 LONG BÌNH & 0946 272 286 ĐỨC ANH)
-        content_html = article.get("content_html", "")
-        has_mandatory_footer = bool(re.search(r'0946\s*272\s*286', content_html) and re.search(r'long\s*bình', content_html, re.I))
-        if not has_mandatory_footer:
+        # 2. BẮT BUỘC PHẢI CÓ KHỐI VIỀN XANH NÉT ĐỨT CỐ ĐỊNH ĐI LIỀN VỚI BANNER WEB (CHỈ 1 KHỐI DUY NHẤT)
+        has_green_box = bool(
+            re.search(r'Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc', content_html)
+            and re.search(r'0946\s*272\s*286', content_html)
+            and re.search(r'526/2', content_html)
+        )
+        has_custom_extra = bool(re.search(r'happyco-footer', content_html, re.I))
+        if not has_green_box:
             report["passed"] = False
-            report["errors"].append("Thiếu ô thông tin cố định bắt buộc của hệ thống (526/2 Long Bình, Hotline 0946 272 286 Đức Anh).")
-            report["checks"]["mandatory_footer"] = "FAIL"
+            report["errors"].append("Thiếu khối viền xanh nét đứt cố định ('Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc... 526/2... 0946 272 286 Đức Anh') để đi liền với Banner web!")
+            report["checks"]["mandatory_green_box"] = "FAIL"
+        elif has_custom_extra:
+            report["passed"] = False
+            report["errors"].append("Phát hiện khối chân trang tự chế (happyco-footer) bị trùng lặp với khối xanh chuẩn!")
+            report["checks"]["mandatory_green_box"] = "FAIL"
         else:
-            report["checks"]["mandatory_footer"] = "PASS (Đầy đủ ô hệ thống cố định xưởng Long Bình & Hotline 0946 272 286)"
+            report["checks"]["mandatory_green_box"] = "PASS (Đủ khối xanh nét đứt chuẩn đi liền Banner)"
 
-        # Cấm chèn số điện thoại lạ hoặc địa chỉ cũ sai lệch (Dĩ An / Chiêu Liêu)
+        # Cấm địa chỉ cũ sai lệch
         has_wrong_address = bool(re.search(r'0947\.888\.306|chiêu\s*liêu|dĩ\s*an', content_html, re.I))
         if has_wrong_address:
             report["passed"] = False
-            report["errors"].append("Phát hiện chèn địa chỉ cũ sai lệch (Dĩ An, Chiêu Liêu). Phải là 526/2 Long Bình Đồng Nai!")
+            report["errors"].append("Phát hiện chèn địa chỉ cũ sai lệch (Dĩ An, Chiêu Liêu)!")
             report["checks"]["no_wrong_address"] = "FAIL"
         else:
             report["checks"]["no_wrong_address"] = "PASS"
 
-        # 3. Kiểm tra số lượng mục Heading <h2> và ảnh minh họa
+        # 3. Kiểm tra ĐỘ MỚI & CHỐNG LẶP TIÊU ĐỀ
+        is_fresh, fresh_msg = check_title_freshness(title, article.get("category", ""))
+        if not is_fresh:
+            report["passed"] = False
+            report["errors"].append(f"Tiêu đề bị lặp/sáo rỗng: {fresh_msg}")
+            report["checks"]["title_freshness"] = f"FAIL ({fresh_msg})"
+        else:
+            report["checks"]["title_freshness"] = "PASS (Tiêu đề mới hoàn toàn, không sáo rỗng)"
+
+        # 4. Kiểm tra số lượng mục Heading <h2>
         h2_count = content_html.lower().count("<h2")
         report["checks"]["h2_count"] = h2_count
         if h2_count < 3:
             report["warnings"].append(f"Bài viết chỉ có {h2_count} mục <h2>. Khuyến nghị chuẩn 4 mục <h2> chuyên sâu.")
 
-        # 4. Kiểm tra liên kết nội bộ (Internal Links: tối thiểu 2 link)
+        # 5. Kiểm tra liên kết nội bộ (Internal Links: tối thiểu 2 link)
         internal_links = re.findall(r'href=[\'"]https?://happyco\.asia[^\'"]*[\'"]', content_html)
         report["checks"]["internal_links_count"] = len(internal_links)
         if len(internal_links) < 2:
             report["warnings"].append(f"Chỉ có {len(internal_links)} liên kết nội bộ. Chuẩn SEO yêu cầu 2-3 links.")
 
-        # 5. Kiểm tra chú thích ảnh (CẤM ghi 'Hình 1, Hình 2...')
+        # 6. Kiểm tra chú thích ảnh (CẤM ghi 'Hình 1, Hình 2...')
         has_numbered_captions = bool(re.search(r'hình\s*[0-9]+', full_text))
         if has_numbered_captions:
             report["passed"] = False
@@ -73,14 +94,29 @@ class ChiefQAAgent:
         else:
             report["checks"]["clean_captions"] = "PASS"
 
-        # 6. Kiểm tra tính khớp nối nội dung và hình ảnh (Visual Logic)
-        category = article.get("category", "").upper()
-        if "GIA CÔNG" in category:
-            # Bài B2B: cấm ảnh phòng khách hoặc TV lạc quẻ
-            if "tivi" in article.get("title", "").lower() and "phòng khách" in article.get("title", "").lower():
-                report["warnings"].append("Tiêu đề mang hơi hướng phòng khách nhưng danh mục là Gia công ván.")
+        # 7. Kiểm tra chuẩn văn phong Web
+        desc = article.get("description", "").strip()
+        if re.search(r'^(?:bài viết|bài viết này|bài viết chia sẻ)', desc, re.I):
+            report["passed"] = False
+            report["errors"].append("Mô tả bài viết (description) vi phạm: Bắt đầu bằng 'Bài viết...' - Viết web phải tóm tắt trực diện giải pháp!")
+            report["checks"]["clean_description"] = "FAIL"
+        else:
+            report["checks"]["clean_description"] = "PASS"
 
-        # 7. Kiểm tra trùng lặp ảnh nếu có danh sách file
+        banned_fb_phrases = [
+            "chào anh em", "xin chào anh em", "chào các bạn", "anh em thợ mộc",
+            "với tư cách", "tôi là giám đốc", "tôi là kiến trúc sư",
+            "chúng tôi là đội ngũ kỹ sư", "chúng tôi là kỹ sư trưởng"
+        ]
+        found_fb = [p for p in banned_fb_phrases if p in full_text]
+        if found_fb:
+            report["passed"] = False
+            report["errors"].append(f"Vi phạm văn phong Web: Phát hiện chào hỏi/xưng danh cá nhân kiểu Facebook ({found_fb})!")
+            report["checks"]["professional_web_tone"] = "FAIL"
+        else:
+            report["checks"]["professional_web_tone"] = "PASS"
+
+        # 8. Kiểm tra trùng lặp ảnh
         if image_files:
             hashes = set()
             for f in image_files:

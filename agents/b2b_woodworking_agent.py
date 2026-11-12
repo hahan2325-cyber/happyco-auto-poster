@@ -1,45 +1,93 @@
 """
 Sub-Agent: Chuyên Gia Gia Công Ván Công Nghiệp (B2B Woodworking Specialist)
 Chuyên trách chuyên mục GIA CÔNG VÁN CÔNG NGHIỆP (ID: 265)
-Đối tượng: Xưởng mộc, Thầu thợ, Đơn vị thi công nội thất, Kiến trúc sư công trình
+- Xoay tua 12 trục đề tài kỹ thuật xưởng B2B (không bao giờ lặp lại).
+- Tự động đổi kiểu đặt tiêu đề qua 6 cấu trúc (hỏi đáp, con số, so sánh, hướng dẫn, câu chuyện xưởng, phản biện).
+- Chặn từ khóa sáo rỗng lặp đi lặp lại ("Chống Nước Tuyệt Đối", "Đột Phá", "Tại Xưởng Happyco"...).
+- Luôn giữ duy nhất 1 khối viền xanh nét đứt chuẩn ở cuối bài (đi liền Banner web).
 """
 
 import os
 import sys
 import re
 import json
-import random
 from typing import Dict, Any, Optional
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-B2B_CURATED_TOPICS = [
+from core.topic_memory import (
+    load_history,
+    pick_least_used_topic,
+    pick_next_formula,
+    check_title_freshness,
+    ensure_green_box,
+    BANNED_TITLE_CLICHES,
+)
+
+B2B_TOPIC_ANGLES = [
     {
-        "keyword": "gia công ván mdf chống ẩm cnc nesting",
-        "title": "Gia Công Ván MDF Chống Ẩm Phủ Melamine: Dây Chuyền CNC Nesting & Khoan Cam Chốt Tự Động Tại Xưởng Happyco",
-        "category": "GIA CÔNG VÁN CÔNG NGHIỆP",
-        "cat_id": "265",
-        "pool": "b2b_cnc",
-        "core_themes": "Giải quyết bài toán tối ưu phôi ván, triệt tiêu mẻ cạnh Melamine, liên kết cam chốt ăn khớp 100%, chia sẻ hạ tầng máy móc xưởng công nghiệp nặng cho anh em thợ mộc."
+        "pool": "b2b_abf_mistakes",
+        "keyword": "lỗi xuất file abf sketchup cắt cnc",
+        "angle": "Những lỗi kỹ thuật thường gặp khi xuất file SketchUp ABF đi cắt CNC (trùng mặt, ngược chiều vân gỗ, sai độ dày ván, thiếu kích thước cạnh dán) khiến xưởng hao phôi 15-20%",
     },
     {
-        "keyword": "gia công dán cạnh pur noline vát tay nắm j k",
-        "title": "Gia Công Dán Cạnh PUR Noline & Vát Tay Nắm J-K Cánh Tủ: Đột Phá Không Đường Keo Cho Xưởng Mộc – Happyco",
-        "category": "GIA CÔNG VÁN CÔNG NGHIỆP",
-        "cat_id": "265",
-        "pool": "b2b_pur",
-        "core_themes": "Khắc phục triệt để đường chỉ đen lem nhem của keo EVA truyền thống, công nghệ dán nẹp keo PUR chống nước 100%, phay vát tay nắm âm cánh J-K liền khối tự động."
+        "pool": "b2b_nesting_opt",
+        "keyword": "tối ưu sơ đồ cắt nesting tấm 1220x2440",
+        "angle": "Kỹ thuật xếp sơ đồ cắt Nesting thông minh trên khổ ván 1220x2440mm để gom tối đa chi tiết tủ áo, giảm đề xê vụn gỗ và tận dụng tấm nguyên còn dư",
     },
     {
-        "keyword": "gia công cắt phôi ván ép plywood phủ melamine",
-        "title": "Gia Công Cắt Phôi Ván Ép Plywood Phủ Melamine Chống Nước Tuyệt Đối Cho Tủ Bếp & Lavabo",
-        "category": "GIA CÔNG VÁN CÔNG NGHIỆP",
-        "cat_id": "265",
-        "pool": "b2b_cnc",
-        "core_themes": "Cốt ván Plywood nhiều lớp ép keo WBP chống nước, cắt CNC dao carbide không xơ xước, dán cạnh PUR noline bảo vệ mép ván bền bỉ."
-    }
+        "pool": "b2b_plywood_vs_mdf",
+        "keyword": "so sánh plywood và mdf lõi xanh làm thùng bếp",
+        "angle": "So sánh thực tế độ bám vít, độ trương nở khi ngâm nước và chi phí gia công giữa cốt ván ép Plywood và MDF lõi xanh HMR cho thùng tủ bếp, lavabo",
+    },
+    {
+        "pool": "b2b_6side_drilling",
+        "keyword": "khoan cam chốt tự động 6 mặt cnc",
+        "angle": "Gia công khoan liên kết cam chốt 6 mặt tự động cho dự án chung cư/khách sạn số lượng lớn: kiểm soát dung sai 0.2mm giúp thợ lắp ráp nhanh gấp đôi tại công trình",
+    },
+    {
+        "pool": "b2b_carbide_chipping",
+        "keyword": "chống mẻ dăm cạnh melamine laminate khi cắt cnc",
+        "angle": "Nguyên nhân cạnh ván Melamine và Laminate hay bị mẻ dăm li ti sau cắt: cách chọn dao phay xoắn carbide kim cương và hiệu chỉnh tốc độ bàn hút chân không",
+    },
+    {
+        "pool": "b2b_outsource_vs_capex",
+        "keyword": "thuê gia công cnc hay đầu tư dàn máy xưởng mộc",
+        "angle": "Bài toán tài chính cho xưởng mộc quy mô 5-12 thợ: nên tự vay đầu tư dàn máy CNC + dán cạnh PUR gần 2 tỷ hay thuê gia công theo file để giải phóng mặt bằng và dòng vốn?",
+    },
+    {
+        "pool": "b2b_curved_cnc",
+        "keyword": "gia công uốn cong phôi gỗ cnc quầy lễ tân vách",
+        "angle": "Kỹ thuật cắt rãnh kerfing và ghép phay CNC tạo phôi ván uốn cong R nhỏ dùng cho quầy bar, quầy lễ tân, bàn đảo và vách ngăn bo tròn",
+    },
+    {
+        "pool": "b2b_acoustic_cnc",
+        "keyword": "gia công vách tiêu âm đục lỗ soi rãnh cnc",
+        "angle": "Gia công vách gỗ tiêu âm đục lỗ và soi rãnh sáo cho hội trường, phòng họp, rạp hát gia đình bằng trung tâm CNC tốc độ cao",
+    },
+    {
+        "pool": "b2b_fluted_shaker",
+        "keyword": "phay cánh huỳnh tân cổ điển cnc soi lam sóng",
+        "angle": "Gia công cánh tủ phay huỳnh pano Tân Cổ Điển và vách lam sóng 3D sắc nét trên cốt MDF tỷ trọng cao sẵn sàng sơn bệt hoặc ép màng",
+    },
+    {
+        "pool": "b2b_led_shadowgap",
+        "keyword": "phay rãnh âm led nhôm định hình shadow gap",
+        "angle": "Gia công sẵn rãnh âm gắn thanh nhôm đèn LED và đường khe bóng shadow gap chính xác bằng máy CNC ngay tại xưởng trước khi bàn giao kiện phôi",
+    },
+    {
+        "pool": "b2b_barcode_flatpack",
+        "keyword": "đóng gói dán tem mã vạch barcode giao công trình",
+        "angle": "Quy trình quản lý hàng trăm chi tiết tủ không thất lạc nhờ phần mềm in tem mã vạch Barcode định danh từng tấm và đóng kiện pallet flat-pack giao công trình tỉnh",
+    },
+    {
+        "pool": "b2b_pur_maintenance",
+        "keyword": "kiểm soát keo dán cạnh pur chịu nhiệt độ ẩm",
+        "angle": "Tại sao đường dán cạnh keo PUR bám dính gấp 3 lần keo EVA? Tìm hiểu nhiệt độ nồi keo chuẩn và kiểm soát độ dày màng keo dưới 0.05mm tại xưởng công nghiệp",
+    },
 ]
+
 
 class B2BWoodworkingAgent:
     def __init__(self):
@@ -53,123 +101,119 @@ class B2BWoodworkingAgent:
         from google import genai
         client = genai.Client(api_key=api_key)
 
-        chosen = random.choice(B2B_CURATED_TOPICS)
-        if not topic_title:
-            topic_title = chosen["title"]
-            keyword = chosen["keyword"]
-            pool = chosen["pool"]
-            themes = chosen["core_themes"]
-        else:
-            keyword = topic_title.lower()
-            pool = "b2b_pur" if "pur" in keyword or "dán cạnh" in keyword else "b2b_cnc"
-            themes = "Gia công mộc công nghiệp, cắt CNC nesting, dán cạnh PUR noline, khoan cam chốt tự động."
+        chosen = pick_least_used_topic(B2B_TOPIC_ANGLES, "GIA CÔNG VÁN")
+        formula = pick_next_formula("GIA CÔNG VÁN")
+        history = load_history()
+        recent_titles_str = "\n".join(f"- {h['title']}" for h in history[:10])
 
-        prompt = f"""
-        Bạn là Kỹ sư trưởng xưởng gia công mộc công nghiệp của CÔNG TY CỔ PHẦN HAPPYCO (Đồng Nai).
-        Hãy viết 1 bài viết kỹ thuật chuyên sâu xuất bản trên website happyco.asia:
+        angle_desc = topic_title if topic_title else chosen["angle"]
+        keyword = chosen["keyword"]
+        pool = chosen["pool"]
 
-        Tiêu đề: {topic_title}
-        Chuyên mục: GIA CÔNG VÁN CÔNG NGHIỆP (ID: 265)
-        Từ khóa chính: {keyword}
-        Nội dung cốt lõi: {themes}
+        extra_feedback = ""
+        final_data = None
 
-        ĐỘC GIẢ MỤC TIÊU:
-        - Chủ xưởng mộc vừa và nhỏ, anh em thợ mộc nhận công trình tự do, nhà thầu thi công nội thất.
-        - Giọng văn: Đậm chất kỹ thuật mộc thực chiến, thấu hiểu nỗi đau nghề mộc: cắt cưa bàn trượt bị mẻ cạnh Melamine, dán keo EVA lộ đường viền đen lem nhem sau vài tháng bám bụi ngấm nước, chi phí đầu tư dàn máy tiền tỷ quá tầm với.
-        - Thuật ngữ kỹ thuật bắt buộc:
-          + Cốt ván chống ẩm lõi xanh tỷ trọng cao (720–780 kg/m³, độ trương nở ngâm nước < 8%).
-          + Máy cắt CNC Nesting bàn hút chân không đa vùng dao phay xoắn carbide triệt tiêu mẻ cạnh.
-          + Công nghệ dán cạnh keo PUR Noline (Polyurethane Reactive) màng keo dưới 0.05mm, kháng nước 100%, chịu nhiệt -40°C đến 140°C, lực bám dính cơ học gấp 3-4 lần keo EVA.
-          + Khoan cam chốt tự động ăn khớp 100%, phay rãnh hậu âm dương, soi hèm đèn LED nhôm định hình.
-          + Đóng gói dán tem mã vạch Barcode từng cấu kiện theo sơ đồ lắp ráp 3D.
+        for attempt in range(2):
+            title_instruction = (
+                f'Sử dụng đúng tiêu đề được chỉ định: "{topic_title}"'
+                if topic_title else
+                f"""TỰ SÁNG TÁC 1 TIÊU ĐỀ HOÀN TOÀN MỚI THEO KIỂU: [{formula['name']}]
+                - Quy tắc kiểu này: {formula['rule']}
+                - Ví dụ tham khảo phong cách (KHÔNG copy): "{formula['b2b_example']}"
+                - CẤM TUYỆT ĐỐI lặp cấu trúc "Gia Công X: Y Cho Xưởng Mộc Tại Happyco" hay lặp các từ sáo rỗng: {', '.join(BANNED_TITLE_CLICHES)}!
+                {extra_feedback}"""
+            )
 
-        BẮT BUỘC CHÈN 2-3 LIÊN KẾT NỘI BỘ (INTERNAL LINKS) TỰ NHIÊN:
-        - 1 link giới thiệu hoặc xưởng mộc: <a href="https://happyco.asia/gioi-thieu.html" style="color: #008848; font-weight: bold; text-decoration: underline;">Happyco</a>
-        - 1 link gia công ván: <a href="https://happyco.asia/dich-vu/gia-cong-van-hmr-phu-melamine-theo-file-abf-tai-bien-hoa.html" style="color: #008848; font-weight: bold; text-decoration: underline;">gia công ván HMR phủ Melamine theo file ABF</a>
-        - Callout box tham khảo:
-        <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; font-size: 15px; color: #166534; line-height: 1.6;">
-          💡 <em>Xem thêm:</em> Quý đối tác xưởng có thể tham khảo thêm giải pháp <a href="https://happyco.asia/dich-vu/gia-cong-van-cong-nghiep/gia-cong-plywood-phu-melamine.html" style="color: #15803d; font-weight: bold; text-decoration: underline;">gia công Plywood phủ Melamine dán nẹp PUR</a> siêu chịu nước cho các hạng mục tủ bếp, tủ lavabo cao cấp.
-        </div>
+            prompt = f"""
+            Bạn là Kỹ sư Cơ Khí Chế Biến Gỗ Công Nghiệp & Quản Lý Sản Xuất của XƯỞNG GIA CÔNG HAPPYCO (Biên Hòa, Đồng Nai).
+            Hãy viết 1 bài viết kỹ thuật B2B thực chiến xuất bản trên website happyco.asia:
 
-        CẤU TRÚC 4 MỤC <h2> BẮT BUỘC KÈM ẢNH:
-        Mỗi mục <h2> phải có cấu trúc chèn ảnh khổ lớn, căn giữa:
-        <p style="text-align: center; margin: 25px 0;">
-          <img src="IMAGE_PLACEHOLDER_1" alt="[Mô tả ảnh kỹ thuật xưởng chuẩn SEO]" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" />
-          <br />
-          <em style="color: #666; font-size: 14px; margin-top: 8px; display: inline-block;">[Chú thích ảnh kỹ thuật mộc thực tế, CẤM chữ 'Hình 1, Hình 2']</em>
-        </p>
+            CHUYÊN MỤC: GIA CÔNG VÁN CÔNG NGHIỆP (cat_id: 265)
+            TRỤC CHỦ ĐỀ BẮT BUỘC: {angle_desc}
+            TỪ KHÓA CHÍNH: {keyword}
 
-        TUYỆT ĐỐI KHÔNG:
-        - CẤM nhắc thương hiệu đối thủ/nhà phân phối (An Cường, Ba Thanh, Mộc Phát...).
-        - CẤM chèn bất kỳ khung viền địa chỉ, hotline hay chữ ký nào ở cuối bài viết (Website đã có sẵn 2 khối chân trang cố định).
+            DANH SÁCH CÁC TIÊU ĐỀ ĐÃ ĐĂNG GẦN ĐÂY (TUYỆT ĐỐI KHÔNG TRÙNG Ý TƯỞNG HAY CÁCH ĐẶT TÊN):
+            {recent_titles_str}
 
-        TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON HỢP LỆ:
-        {{
-            "title": "...",
-            "description": "...",
-            "content_html": "...",
-            "meta_title": "...",
-            "meta_description": "...",
-            "tags": "...",
-            "category": "GIA CÔNG VÁN CÔNG NGHIỆP",
-            "cat_id": "265",
-            "pool": "{pool}",
-            "image_prompts": [
-                {{"key": "thumb", "title_vi": "Ảnh bìa gia công mộc Happyco", "alt_vi": "Ảnh bìa xưởng gia công mộc", "caption_vi": "Dây chuyền gia công ván Happyco", "prompt_en": "Photorealistic horizontal 16:9 industrial woodworking factory photograph..."}},
-                {{"key": "h2_1", "title_vi": "Ảnh tiêu chuẩn cốt ván", "alt_vi": "Cốt ván chống ẩm tỷ trọng cao", "caption_vi": "Kiểm tra dung sai cốt ván chống ẩm", "prompt_en": "Photorealistic horizontal 16:9 workshop photograph of moisture-resistant green core MDF..."}},
-                {{"key": "h2_2", "title_vi": "Ảnh máy CNC Nesting", "alt_vi": "Máy cắt phay CNC bàn hút chân không", "caption_vi": "Gia công cắt CNC Nesting không mẻ cạnh", "prompt_en": "Photorealistic horizontal 16:9 photograph of a modern high-speed CNC nesting machine cutting wood panels..."}},
-                {{"key": "h2_3", "title_vi": "Ảnh máy dán cạnh PUR Noline", "alt_vi": "Công nghệ dán cạnh keo PUR noline", "caption_vi": "Cận cảnh mép dán cạnh PUR không đường keo", "prompt_en": "Photorealistic horizontal 16:9 macro close-up of industrial PUR edge banding machine..."}},
-                {{"key": "h2_4", "title_vi": "Ảnh đóng gói mã vạch", "alt_vi": "Đóng gói dán tem barcode theo kiện", "caption_vi": "Thành phẩm dán mã barcode xuất xưởng", "prompt_en": "Photorealistic horizontal 16:9 warehouse photograph of finished flat-pack furniture components with barcode labels..."}}
-            ]
-        }}
-        """
+            YÊU CẦU ĐẶT TIÊU ĐỀ:
+            {title_instruction}
 
-        res = None
-        for model_name in ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"]:
-            try:
-                res = client.models.generate_content(model=model_name, contents=prompt)
-                if res and res.text:
-                    break
-            except Exception as e:
-                print(f"Warning: Model {model_name} failed: {e}. Trying next model...")
-                continue
+            QUY CHUẨN VĂN PHONG KỸ THUẬT B2B TRÊN WEBSITE:
+            - Độc giả: Chủ xưởng mộc vừa & nhỏ, thợ thi công công trình, kiến trúc sư dự án.
+            - TUYỆT ĐỐI CẤM chào hỏi kiểu Facebook ('Chào anh em', 'Xin chào các bác thợ'...), CẤM tự xưng ('Tôi là kỹ sư...', 'Với tư cách là...').
+            - Mô tả (description): 140-160 ký tự tóm tắt thẳng thông số/bài toán kỹ thuật, CẤM bắt đầu bằng 'Bài viết...'.
+            - CẤM nhắc thương hiệu đối thủ/nhà phân phối (An Cường, Ba Thanh, Mộc Phát...).
+            - CẤM tự ý chèn khung địa chỉ/hotline cuối bài (hậu kiểm sẽ tự ghép duy nhất 1 khối viền xanh chuẩn ở cuối).
 
-        if not res or not res.text:
-            raise RuntimeError("Failed to generate content with available Gemini models!")
-        raw = res.text.strip()
-        if raw.startswith("```json"): raw = raw[7:]
-        elif raw.startswith("```"): raw = raw[3:]
-        if raw.endswith("```"): raw = raw[:-3]
+            BẮT BUỘC CHÈN 2-3 LINK NỘI BỘ TỰ NHIÊN:
+            - <a href="https://happyco.asia/gioi-thieu.html">xưởng gia công Happyco</a>
+            - <a href="https://happyco.asia/dich-vu/gia-cong-van-hmr-phu-melamine-theo-file-abf-tai-bien-hoa.html">gia công ván theo file ABF</a>
 
-        data = json.loads(raw.strip())
-        data["category"] = "GIA CÔNG VÁN CÔNG NGHIỆP"
-        data["cat_id"] = "265"
-        data["pool"] = pool
+            CẤU TRÚC 4 MỤC <h2> CHUYÊN SÂU KÈM ẢNH:
+            Mỗi mục <h2> có khối ảnh căn giữa (img src="IMAGE_PLACEHOLDER_1" .. _4, CẤM ghi Hình 1, Hình 2 trong chú thích).
 
-        # Remove any accidental footer/address blocks (website template renders them)
-        html = data.get("content_html", "")
-        html = re.sub(r'<div[^>]*>(?:(?!<\/div>).)*(?:094[67]|Chúng Tôi Nhận Thiết Kế|Khu vực phục vụ|Địa chỉ nhà xưởng).*?<\/div>', '', html, flags=re.DOTALL | re.IGNORECASE)
-        html = re.sub(r'<p[^>]*>.*?(?:094[67]|Hotline tư vấn|Địa chỉ công ty).*?</p>', '', html, flags=re.DOTALL | re.IGNORECASE)
+            BỘ 5 IMAGE PROMPTS (THỰC TẾ XƯỞNG MỘC VIỆT NAM - DOCUMENTARY PHOTOGRAPHY):
+            - Tất cả phải là ảnh phóng sự chụp máy cầm tay ngang tầm mắt trong xưởng gỗ Việt Nam thực tế, ánh sáng đèn tuýp LED nhà xưởng, sàn bê tông có mùn cưa mịn, 16:9 widescreen, zero CGI gloss, zero 3D render look.
 
-        # Đảm bảo có callout box và link nội bộ
-        if "gia-cong-plywood" not in html:
-            html += """
-<div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; font-size: 15px; color: #166534; line-height: 1.6;">
-  💡 <em>Xem thêm:</em> Quý đối tác xưởng có thể tham khảo thêm giải pháp <a href="https://happyco.asia/dich-vu/gia-cong-van-cong-nghiep/gia-cong-plywood-phu-melamine.html" style="color: #15803d; font-weight: bold; text-decoration: underline;">gia công Plywood phủ Melamine dán nẹp PUR</a> | <a href="https://happyco.asia/dich-vu/gia-cong-van-hmr-phu-melamine-theo-file-abf-tai-bien-hoa.html" style="color: #15803d; font-weight: bold; text-decoration: underline;">gia công ván HMR theo file ABF</a> tại xưởng Happyco.
-</div>"""
+            TRẢ VỀ DUY NHẤT 1 JSON HỢP LỆ (KHÔNG MARKDOWN THỪA):
+            {{
+                "title": "...",
+                "slug": "...",
+                "description": "...",
+                "meta_description": "...",
+                "keywords": "{keyword}, gia công ván công nghiệp đồng nai, cắt cnc dán cạnh pur",
+                "category": "GIA CÔNG VÁN CÔNG NGHIỆP",
+                "cat_id": "265",
+                "pool": "{pool}",
+                "formula_id": "{formula['id']}",
+                "content_html": "<p>...</p><h2>1. ...</h2>...<h2>2. ...</h2>...<h2>3. ...</h2>...<h2>4. ...</h2>...",
+                "image_prompts": [
+                    {{"key": "thumb", "caption_vi": "...", "prompt_en": "Documentary photography, handheld eye-level wide shot in a real Vietnamese industrial woodworking workshop... zero CGI gloss, 16:9 widescreen"}},
+                    {{"key": "h2_1", "caption_vi": "...", "prompt_en": "Documentary photography, handheld close-up... zero CGI gloss, 16:9 widescreen"}},
+                    {{"key": "h2_2", "caption_vi": "...", "prompt_en": "Documentary photography, handheld medium shot... zero CGI gloss, 16:9 widescreen"}},
+                    {{"key": "h2_3", "caption_vi": "...", "prompt_en": "Documentary photography, handheld eye-level... zero CGI gloss, 16:9 widescreen"}},
+                    {{"key": "h2_4", "caption_vi": "...", "prompt_en": "Documentary photography, handheld candid shot... zero CGI gloss, 16:9 widescreen"}}
+                ]
+            }}
+            """
 
-        # BẮT BUỘC: CÀI ĐẶT CHẾT Ô THÔNG TIN HỆ THỐNG CỐ ĐỊNH Ở CUỐI BÀI VIẾT
-        FIXED_FOOTER = """
-<div style="border: 2px dashed #008848; background: #f6fff9; border-radius: 8px; padding: 18px 22px; margin: 28px 0;">
-  <p style="color: #008848; font-weight: bold; margin: 0 0 8px 0; font-size: 16px;">Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc Tại Các Khu Vực Sau:</p>
-  <p style="margin: 6px 0; color: #333; line-height: 1.6;">- Miền Nam: Thành phố Hồ Chí Minh, Đồng Nai, Tây Ninh, Thành phố Cần Thơ, Vĩnh Long, Đồng Tháp, Cà Mau, An Giang.</p>
-  <p style="margin: 6px 0; color: #333; line-height: 1.6;">📍 <strong>Địa chỉ công ty:</strong> 526/2, Khu phố 8A, Phường Long Bình, thành phố Đồng Nai.</p>
-  <p style="margin: 6px 0; color: #d32f2f; font-weight: bold; font-size: 16px;">📞 Liên hệ: 0946 272 286 (Đức Anh)</p>
-</div>
-"""
-        if "Chúng Tôi Nhận Thiết Kế Nội Thất Ngành Mộc Tại Các Khu Vực Sau" not in html:
-            html += "\n" + FIXED_FOOTER
+            res = None
+            for model_name in ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=model_name, contents=prompt)
+                    if res and res.text:
+                        break
+                except Exception as e:
+                    print(f"Warning: Model {model_name} failed: {e}")
 
-        data["content_html"] = html.strip()
+            if not res or not res.text:
+                raise RuntimeError("Failed to generate B2B content!")
 
-        return data
+            raw = res.text.strip()
+            if raw.startswith("```json"): raw = raw[7:]
+            elif raw.startswith("```"): raw = raw[3:]
+            if raw.endswith("```"): raw = raw[:-3]
+            data = json.loads(raw.strip())
+
+            data["category"] = "GIA CÔNG VÁN CÔNG NGHIỆP"
+            data["cat_id"] = "265"
+            data["pool"] = pool
+            data["formula_id"] = formula["id"]
+
+            desc = re.sub(r'^(?:Bài viết|Bài viết này|Bài viết chia sẻ)\s*[:,-]?\s*', '', data.get("description", ""), flags=re.I).strip()
+            data["description"] = desc
+            data["meta_description"] = desc
+            data["content_html"] = ensure_green_box(data.get("content_html", ""))
+
+            if topic_title:
+                final_data = data
+                break
+
+            ok, reason = check_title_freshness(data["title"], "GIA CÔNG VÁN CÔNG NGHIỆP")
+            if ok:
+                final_data = data
+                break
+            extra_feedback = f"\n⚠️ LẦN TRƯỚC TIÊU ĐỀ '{data['title']}' BỊ TỪ CHỐI VÌ: {reason}. BẮT BUỘC VIẾT TIÊU ĐỀ HOÀN TOÀN MỚI!"
+            final_data = data
+
+        return final_data

@@ -115,7 +115,8 @@ def main():
     audit_report = chief_qa.audit(article, image_files=list(image_files.values()))
     
     print(f"  + Kiểm tra đối thủ cấm: {audit_report['checks'].get('no_banned_brands')}")
-    print(f"  + Kiểm tra chân trang: {audit_report['checks'].get('clean_footer')}")
+    print(f"  + Kiểm tra khối xanh chân trang: {audit_report['checks'].get('mandatory_green_box')}")
+    print(f"  + Kiểm tra độ mới tiêu đề: {audit_report['checks'].get('title_freshness')}")
     print(f"  + Số lượng Heading <h2>: {audit_report['checks'].get('h2_count')}")
     print(f"  + Số liên kết nội bộ: {audit_report['checks'].get('internal_links_count')}")
     print(f"  + Chú thích ảnh tự nhiên: {audit_report['checks'].get('clean_captions')}")
@@ -133,6 +134,10 @@ def main():
     post_info = result.get("post_info", {})
     post_id = post_info.get("id", "N/A")
     post_title = post_info.get("title", article["title"])
+
+    # Ghi nhận vào bộ nhớ chống trùng lặp tiêu đề & ý tưởng
+    from core.topic_memory import record_published
+    record_published(post_title, article.get("category", ""), article.get("formula_id", "custom"), article.get("pool", ""))
 
     # Đăng ký các ảnh đã dùng vào sổ băm chống trùng lặp tuyệt đối
     from core.image_registry import register
