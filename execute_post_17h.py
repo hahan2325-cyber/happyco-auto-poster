@@ -88,13 +88,7 @@ def run():
         page.fill('input[name="title"]', title)
         page.fill('input[name="slug"]', slug)
         
-        page.evaluate("""(catId) => {
-            const sel = document.querySelector('select[name="category_id"]') || document.querySelector('select[name="news_category_id"]');
-            if (sel) {
-                sel.value = catId;
-                sel.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        }""", "266")
+        page.select_option('select[name="cat_id"]', "266")
         
         page.fill('input[name="meta_keyword"]', meta_keywords)
         
@@ -163,13 +157,7 @@ def run():
     <li><strong>Giá bát đĩa nâng hạ trợ lực 2 tầng:</strong> Cơ cấu piston trợ lực 4 mức tải trọng giúp hạ cả giàn bát xuống vừa tầm mắt chỉ với một cái kéo nhẹ.</li>
     <li><strong>Hệ thống bản lề &amp; ray trượt hộp giảm chấn inox 304:</strong> Triệt tiêu tiếng ồn va đập, bảo vệ cánh kính khi đóng mạnh.</li>
     <li><strong>Hệ giá góc liên hoàn &amp; mâm xoay thông minh:</strong> Tận dụng triệt để "góc chết" của hệ tủ chữ L, lấy đồ ra ngoài dễ dàng.</li>
-</ul>
-
-<div class="happyco-footer" style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #b8860b; border-radius: 4px; margin-top: 30px;">
-    <h3 style="margin-top: 0; color: #222;">NỘI THẤT HAPPYCO - XƯỞNG SẢN XUẤT TRỰC TIẾP KHÔNG QUA TRUNG GIAN</h3>
-    <p style="margin: 6px 0;"><strong>Xưởng sản xuất Happyco:</strong> 526/2, Khu phố 8A, Phường Long Bình, TP. Biên Hòa, Đồng Nai.</p>
-    <p style="margin: 6px 0;"><strong>Hotline tư vấn kỹ thuật &amp; báo giá:</strong> <a href="tel:0946272286" style="color: #b8860b; text-decoration: none; font-weight: bold;">0946 272 286 (Đức Anh)</a>.</p>
-</div>"""
+</ul>"""
         
         final_html = html_raw.replace("{IMG_1}", cdn_urls[1]) \
                              .replace("{IMG_2}", cdn_urls[2]) \

@@ -108,13 +108,7 @@ def main():
         page.fill('input[name="slug"]', article["slug"])
         
         # Chuyên mục 266 (BLOG NỘI THẤT)
-        page.evaluate("""(catId) => {
-            const sel = document.querySelector('select[name="category_id"]') || document.querySelector('select[name="news_category_id"]');
-            if (sel) {
-                sel.value = catId;
-                sel.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        }""", "266")
+        page.select_option('select[name="cat_id"]', "266")
         
         # Keyword & Meta
         page.fill('input[name="meta_keyword"]', "nội thất phòng ngủ master, thiết kế phòng ngủ vợ chồng trẻ, tủ áo cánh kính slim, cốt ván e1 e0, nội thất happyco")
