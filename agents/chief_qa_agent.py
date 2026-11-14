@@ -7,7 +7,7 @@ và đảm bảo văn phong chuyên nghiệp trước khi xuất bản.
 import re
 import hashlib
 from typing import Dict, Any, List
-from core.topic_memory import check_title_freshness
+from core.topic_memory import check_title_freshness, check_keywords_seo
 
 BANNED_BRANDS = ["an cường", "an cuong", "ba thanh", "mộc phát", "moc phat", "panel plus"]
 
@@ -71,7 +71,17 @@ class ChiefQAAgent:
             report["errors"].append(f"Tiêu đề bị lặp/sáo rỗng: {fresh_msg}")
             report["checks"]["title_freshness"] = f"FAIL ({fresh_msg})"
         else:
-            report["checks"]["title_freshness"] = "PASS (Tiêu đề mới hoàn toàn, không sáo rỗng)"
+            report["checks"]["title_freshness"] = "PASS (Tiêu đề mới hoàn toàn, chuẩn SEO 45-65 ký tự)"
+
+        # 3b. Kiểm tra TỪ KHÓA CHUẨN SEO (2-3 cụm từ, tổng dưới 70 ký tự)
+        kw = article.get("keywords", "")
+        kw_ok, kw_msg = check_keywords_seo(kw)
+        if not kw_ok:
+            report["passed"] = False
+            report["errors"].append(f"Từ khóa chưa chuẩn SEO: {kw_msg}")
+            report["checks"]["keywords_seo"] = f"FAIL ({kw_msg})"
+        else:
+            report["checks"]["keywords_seo"] = "PASS (2-3 cụm từ ngắn gọn)"
 
         # 4. Kiểm tra số lượng mục Heading <h2>
         h2_count = content_html.lower().count("<h2")

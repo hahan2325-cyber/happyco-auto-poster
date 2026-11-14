@@ -102,9 +102,14 @@ def _normalize_tokens(text: str) -> set:
 
 
 def check_title_freshness(new_title: str, category: str = "") -> Tuple[bool, str]:
-    """Kiểm tra tiêu đề mới có bị sáo rỗng, lặp từ hoặc giống bài đã đăng không."""
-    low = new_title.lower().strip()
+    """Kiểm tra tiêu đề mới có chuẩn SEO (45-65 ký tự), không sáo rỗng, không lặp từ và không trùng bài cũ."""
+    title_len = len(new_title.strip())
+    if title_len > 65:
+        return False, f"Tiêu đề quá dài ({title_len} ký tự). Chuẩn SEO Google bắt buộc độ dài từ 45 đến 65 ký tự để không bị cắt trên SERP!"
+    if title_len < 40:
+        return False, f"Tiêu đề quá ngắn ({title_len} ký tự). Chuẩn SEO cần từ 45 đến 65 ký tự chứa từ khóa trọng tâm!"
 
+    low = new_title.lower().strip()
     for cliche in BANNED_TITLE_CLICHES:
         if cliche in low:
             return False, f"Tiêu đề chứa cụm từ sáo rỗng lặp lại nhiều lần ('{cliche}'). Phải viết tự nhiên, mới mẻ hơn!"
@@ -123,6 +128,16 @@ def check_title_freshness(new_title: str, category: str = "") -> Tuple[bool, str
         if overlap >= 0.58:
             return False, f"Tiêu đề trùng ý/từ khóa ({int(overlap*100)}%) với bài đã đăng: '{old_title}'"
 
+    return True, "PASS"
+
+
+def check_keywords_seo(keywords: str) -> Tuple[bool, str]:
+    """Kiểm tra từ khóa có chuẩn SEO (2-3 cụm từ ngắn gọn, tổng dưới 70 ký tự)."""
+    parts = [k.strip() for k in keywords.split(",") if k.strip()]
+    if len(parts) > 3:
+        return False, f"Quá nhiều từ khóa ({len(parts)} cụm). Chuẩn SEO chỉ nên có 2-3 cụm từ khóa ngắn gọn!"
+    if len(keywords.strip()) > 70:
+        return False, f"Từ khóa quá dài ({len(keywords.strip())} ký tự). Chuẩn SEO cần súc tích dưới 70 ký tự!"
     return True, "PASS"
 
 

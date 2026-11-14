@@ -162,6 +162,7 @@ class B2CInteriorAgent:
                 f"""TỰ SÁNG TÁC 1 TIÊU ĐỀ HOÀN TOÀN MỚI THEO KIỂU: [{formula['name']}]
                 - Quy tắc kiểu này: {formula['rule']}
                 - Ví dụ tham khảo phong cách (KHÔNG copy): "{formula['b2c_example']}"
+                - ĐỘ DÀI TIÊU ĐỀ BẮT BUỘC: TỪ 50 ĐẾN 65 KÝ TỰ (Chuẩn Google SEO, CẤM viết dài quá 65 ký tự sẽ bị Google cắt ngắn!).
                 - CẤM TUYỆT ĐỐI lặp cấu trúc "Thiết Kế X: Y Tại Happyco" hay lặp các từ sáo rỗng: {', '.join(BANNED_TITLE_CLICHES)}!
                 {extra_feedback}"""
             )
@@ -204,7 +205,7 @@ class B2CInteriorAgent:
                 "title": "...",
                 "slug": "...",
                 "description": "...",
-                "keywords": "{keyword}, nội thất gỗ may đo, xưởng mộc biên hòa đồng nai",
+                "keywords": "{keyword}, nội thất gỗ may đo",
                 "category": "BLOG NỘI THẤT",
                 "cat_id": 266,
                 "pool": "{pool}",

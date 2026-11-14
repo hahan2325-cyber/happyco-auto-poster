@@ -120,6 +120,7 @@ class B2BWoodworkingAgent:
                 f"""TỰ SÁNG TÁC 1 TIÊU ĐỀ HOÀN TOÀN MỚI THEO KIỂU: [{formula['name']}]
                 - Quy tắc kiểu này: {formula['rule']}
                 - Ví dụ tham khảo phong cách (KHÔNG copy): "{formula['b2b_example']}"
+                - ĐỘ DÀI TIÊU ĐỀ BẮT BUỘC: TỪ 50 ĐẾN 65 KÝ TỰ (Chuẩn Google SEO, CẤM viết dài quá 65 ký tự sẽ bị Google cắt ngắn!).
                 - CẤM TUYỆT ĐỐI lặp cấu trúc "Gia Công X: Y Cho Xưởng Mộc Tại Happyco" hay lặp các từ sáo rỗng: {', '.join(BANNED_TITLE_CLICHES)}!
                 {extra_feedback}"""
             )
@@ -161,7 +162,7 @@ class B2BWoodworkingAgent:
                 "slug": "...",
                 "description": "...",
                 "meta_description": "...",
-                "keywords": "{keyword}, gia công ván công nghiệp đồng nai, cắt cnc dán cạnh pur",
+                "keywords": "{keyword}, cắt cnc nesting",
                 "category": "GIA CÔNG VÁN CÔNG NGHIỆP",
                 "cat_id": "265",
                 "pool": "{pool}",
