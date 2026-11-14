@@ -36,8 +36,32 @@ class AssetLibrary:
         """
         Đóng dấu Happyco Duo Watermark chuẩn tỷ lệ 22% TRONG SUỐT HOÀN TOÀN
         CẤM TUYỆT ĐỐI NỀN TRẮNG, HỘP PILL HOẶC KHUNG VIỀN DƯỚI LOGO
+        Tự động tẩy sạch logo/watermark Flow ở góc dưới phải trước khi đóng dấu.
         """
         im = Image.open(src_path).convert("RGBA")
+
+        # TỰ ĐỘNG XÓA LOGO FLOW Ở GÓC DƯỚI PHẢI (INPAINT TELEA)
+        try:
+            import cv2
+            import numpy as np
+            arr = np.array(im.convert("RGB"))
+            bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+            bh, bw = bgr.shape[:2]
+            x1, y1 = max(0, bw - 200), max(0, bh - 160)
+            x2, y2 = bw - 5, bh - 5
+            patch = bgr[y1:y2, x1:x2]
+            gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+            tophat = cv2.morphologyEx(gray, cv2.MORPH_TOPHAT, kernel)
+            _, mask = cv2.threshold(tophat, 16, 255, cv2.THRESH_BINARY)
+            if np.count_nonzero(mask) > 10:
+                dilated = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)), iterations=2)
+                bgr[y1:y2, x1:x2] = cv2.inpaint(patch, dilated, 5, cv2.INPAINT_TELEA)
+                rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+                im = Image.fromarray(rgb).convert("RGBA")
+        except Exception as e:
+            pass
+
         w, h = im.size
         target_h = int(w * 9 / 16)
         if h > target_h:

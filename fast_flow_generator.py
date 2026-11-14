@@ -82,8 +82,8 @@ def generate_flow_batch_parallel(prompts, output_dir=None):
                 break
         if not page:
             page = browser.contexts[0].pages[0]
-            page.goto("https://flow.google.com/project/d7cecce7-8682-454a-bb94-13576243c599", wait_until="networkidle")
-            page.wait_for_timeout(3000)
+            page.goto("https://flow.google.com/project/d7cecce7-8682-454a-bb94-13576243c599", wait_until="domcontentloaded", timeout=45000)
+            page.wait_for_selector("[contenteditable='true']:visible, [role='textbox']:visible", timeout=30000)
             
         print(f"Connected to Flow page: {page.url}")
         page.bring_to_front()
